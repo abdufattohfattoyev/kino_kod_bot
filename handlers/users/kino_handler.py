@@ -37,7 +37,7 @@ async def show_stats(message: types.Message):
             f"- Kunlik yangi foydalanuvchilar: {daily_users}\n"
             f"- Haftalik yangi foydalanuvchilar: {weekly_users}\n"
             f"- Oylik yangi foydalanuvchilar: {monthly_users}\n\n"
-            f"Faol foydalanuvchilar:\n"
+            f"- Faol foydalanuvchilar:\n\n"
             f"- Kunlik faol: {active_daily}\n"
             f"- Haftalik faol: {active_weekly}\n"
             f"- Oylik faol: {active_monthly}"

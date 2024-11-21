@@ -28,10 +28,8 @@ async def bot_start(message: types.Message):
             except Exception as e:
                 print(f"Admin {admin} ga xabar yuborishda xato: {e}")
 
-    # Foydalanuvchi mavjud bo‘lsa ham, uning faoliyatini yangilash
     user_db.update_last_active(user_id)
 
-    # Xush kelibsiz xabari tugma bilan birga
     await message.answer(
         f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
         reply_markup=kanal_keyboard  # Alohida fayldan tugmani qo‘shamiz
