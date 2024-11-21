@@ -31,5 +31,5 @@ async def bot_start(message: types.Message):
 
     # Foydalanuvchiga xush kelibsiz xabari
     await message.answer(
-        f"👋 Assalomu alaykum, {message.from_user.full_name}! Botimizga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring."
+        f"👋 Assalomu alaykum, {message.from_user.full_name}!Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring."
     )
