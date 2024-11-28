@@ -137,7 +137,7 @@ async def search_kino_handler(message: types.Message):
                 await bot.send_video(
                     chat_id=message.from_user.id,
                     video=data['file_id'],
-                    caption=f"{data['caption']} \n\n🗂Kinoni Yuklash Soni: {data['count_download']} \n\n📌 Barcha kinolar:  T.me/Kino_Mania_2024"
+                    caption=f"{data['caption']} \n\n🗂Kinoni Yuklash Soni: {data['count_download']} \n\n📌 Barcha kinolar: T.me/Kino_Mania_2024"
                 )
 
                 # Update the download count in the database
