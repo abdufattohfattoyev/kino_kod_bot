@@ -7,7 +7,7 @@ from keyboards.default.kanal_button import kanal_keyboard
 @dp.message_handler(CommandStart())
 async def bot_start(message: types.Message):
     user_id = message.from_user.id
-    username = message.from_user.username or f"User ID: {message.from_user.id}"
+    username = message.from_user.username or f"User ID: {message.from_user.full_name}"
 
 
     # Foydalanuvchi mavjudligini tekshirish

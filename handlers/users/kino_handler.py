@@ -115,10 +115,10 @@ async def movie_kino_delete(message: types.Message, state: FSMContext):
         data['is_confirm'] = message.text
         if data['is_confirm'] == "✅Tasdiqlash":
             kino_db.delete_kino(data['post_id'])
-            await message.answer("Kino muvaffaqiyatli o'chirildi", reply_markup=ReplyKeyboardRemove())  # Knopkalar olib tashlanadi
+            await message.answer("Kino muvaffaqiyatli o'chirildi", reply_markup=ReplyKeyboardRemove())
             await state.finish()  # Holatni tugatish
         elif data['is_confirm'] == "❌Bekor qilish":
-            await message.answer("Bekor qilindi", reply_markup=ReplyKeyboardRemove())  # Knopkalar olib tashlanadi
+            await message.answer("Bekor qilindi", reply_markup=ReplyKeyboardRemove())
             await state.finish()  # Holatni tugatish
         else:
             await message.answer("Iltimos quyidagi tugmalardan birini tanlang", reply_markup=menu_movie)
@@ -126,6 +126,8 @@ async def movie_kino_delete(message: types.Message, state: FSMContext):
 # Handler to search kino by post id (user side)
 @dp.message_handler(lambda x: x.text.isdigit())
 async def search_kino_handler(message: types.Message):
+    user_id=message.from_user.id
+    user_db.update_last_active(user_id)
     if message.text.isdigit():
         post_id = int(message.text)
         data = kino_db.search_kino_by_post_id(post_id)
@@ -172,4 +174,9 @@ async def cancel_handler(message: types.Message, state: FSMContext):
     # Holatdan chiqish
     await state.finish()
     await message.answer("Jarayon bekor qilindi. Siz bosh menyudasiz.", reply_markup=ReplyKeyboardRemove())
+
+@dp.message_handler(content_types=types.ContentType.VIDEO)
+async def get_video_file_id(message: types.Message):
+    await message.answer(f"Fayl identifikatori: {message.video.file_id}")
+
 
