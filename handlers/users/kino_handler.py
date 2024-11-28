@@ -162,7 +162,10 @@ async def message_count_kino(message: types.Message):
 # Handler to search kino by post id (user side)
 @dp.message_handler(lambda x: x.text.isdigit())
 async def search_kino_handler(message: types.Message):
+    user_id=message.from_user.id
+    user_db.update_last_active(user_id)
     if message.text.isdigit():
+
         post_id = int(message.text)
         data = kino_db.search_kino_by_post_id(post_id)
         if data:
