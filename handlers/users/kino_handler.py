@@ -37,7 +37,7 @@ async def show_stats(message: types.Message):
             f"- Kunlik yangi foydalanuvchilar: {daily_users}\n"
             f"- Haftalik yangi foydalanuvchilar: {weekly_users}\n"
             f"- Oylik yangi foydalanuvchilar: {monthly_users}\n\n"
-            f"Faol foydalanuvchilar:\n"
+            f"- Faol foydalanuvchilar:\n\n"
             f"- Kunlik faol: {active_daily}\n"
             f"- Haftalik faol: {active_weekly}\n"
             f"- Oylik faol: {active_monthly}"
@@ -45,29 +45,6 @@ async def show_stats(message: types.Message):
         await message.answer(stats_message)
     else:
         await message.answer("Siz admin emassiz.")
-
-
-
-# Command to count total users in the database (for admins)
-@dp.message_handler(commands="count_users")
-async def message_count_users(message: types.Message):
-    admin_id = message.from_user.id
-    if admin_id in ADMINS:
-        user_count = user_db.count_users()
-        await message.answer(f"Bazada {user_count} ta foydalanuvchi bor")
-    else:
-        await message.answer("Siz admin emassiz")
-
-
-# Command to show new kinolar (for admins)
-@dp.message_handler(commands="new_kinos")
-async def show_new_kinos(message: types.Message):
-    new_kinos = kino_db.get_new_kinos()
-    if new_kinos:
-        for file_id, caption in new_kinos:
-            await message.answer_video(video=file_id, caption=caption)
-    else:
-        await message.answer("Yangi kinolar mavjud emas.")
 
 # Handler for adding a new kino (for admins)
 @dp.message_handler(commands="kino_add")
@@ -106,9 +83,6 @@ async def kino_code_handler(message: types.Message, state: FSMContext):
         await message.answer("Kino muvaffaqiyatli qo‘shildi.")
         await state.finish()
 
-        # Yangi kino qo‘shilganda foydalanuvchilarga xabar yuborish
-        await notify_users_about_new_kino(data['caption'])
-
     except ValueError:
         await message.answer("Iltimos kino kodni faqat raqam bilan yuboring.")
 
@@ -141,23 +115,13 @@ async def movie_kino_delete(message: types.Message, state: FSMContext):
         data['is_confirm'] = message.text
         if data['is_confirm'] == "✅Tasdiqlash":
             kino_db.delete_kino(data['post_id'])
-            await message.answer("Kino muvaffaqiyatli o'chirildi", reply_markup=ReplyKeyboardRemove())  # Knopkalar olib tashlanadi
+            await message.answer("Kino muvaffaqiyatli o'chirildi", reply_markup=ReplyKeyboardRemove())
             await state.finish()  # Holatni tugatish
         elif data['is_confirm'] == "❌Bekor qilish":
-            await message.answer("Bekor qilindi", reply_markup=ReplyKeyboardRemove())  # Knopkalar olib tashlanadi
+            await message.answer("Bekor qilindi", reply_markup=ReplyKeyboardRemove())
             await state.finish()  # Holatni tugatish
         else:
             await message.answer("Iltimos quyidagi tugmalardan birini tanlang", reply_markup=menu_movie)
-
-# Command to count total kinolar in the database (for admins)
-@dp.message_handler(commands="count_kinos")
-async def message_count_kino(message: types.Message):
-    count = kino_db.count_kinos()
-    admin_id = message.from_user.id
-    if admin_id in ADMINS:
-        await message.answer(f"Bazada {count['count']} ta kino bor")
-    else:
-        await message.answer("Siz admin emassiz")
 
 # Handler to search kino by post id (user side)
 @dp.message_handler(lambda x: x.text.isdigit())
@@ -174,7 +138,7 @@ async def search_kino_handler(message: types.Message):
                 await bot.send_video(
                     chat_id=message.from_user.id,
                     video=data['file_id'],
-                    caption=f"{data['caption']} \n\nKinoni Yuklanishlar Soni: {data['count_download']} \n\nKo'proq kinolar uchun biz bilan qoling"
+                    caption=f"{data['caption']} \n\n🗂Kinoni Yuklash Soni: {data['count_download']} \n\n📌 Barcha kinolar:  T.me/Kino_Mania_2024"
                 )
 
                 # Update the download count in the database
@@ -200,30 +164,8 @@ async def search_kino_by_caption_handler(message: types.Message):
     else:
         await message.answer(f"'{query}' tavsifi bilan hech qanday kino topilmadi.")
 
-# Foydalanuvchilarga yangi kino haqida xabar yuborish
-async def notify_users_about_new_kino(caption):
-    users = user_db.select_all_users()
-    sent_count = 0
-    error_count = 0
-
-    for user_id in users:
-        try:
-            await bot.send_message(
-                chat_id=user_id,
-                text=f"🎬 Yangi kino qo‘shildi:\n\n{caption}\n\nBarcha kinolarni ko‘rish uchun botga o'ting."
-            )
-            sent_count += 1
-        except Exception as e:
-            print(f"Xato foydalanuvchi {user_id} uchun: {e}")
-            user_db.delete_user(user_id)
-            error_count += 1
-        await asyncio.sleep(0.1)
-
-    print(f"Xabar {sent_count} foydalanuvchiga yuborildi, {error_count} ta xatolik yuz berdi.")
-
-
 # Har qanday buyruq orqali holatdan chiqish
-@dp.message_handler(state="*", commands=["start", "help", "kino_add", "kino_delete", "count_users", "count_kinos", "stats", "new_kinos"])
+@dp.message_handler(state="*", commands=["start", "help", "kino_add", "kino_delete", "stats"])
 @dp.message_handler(lambda message: message.text.lower() in ["bekor qilish", "/cancel"], state="*")
 async def cancel_handler(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
@@ -233,3 +175,9 @@ async def cancel_handler(message: types.Message, state: FSMContext):
     # Holatdan chiqish
     await state.finish()
     await message.answer("Jarayon bekor qilindi. Siz bosh menyudasiz.", reply_markup=ReplyKeyboardRemove())
+
+@dp.message_handler(content_types=types.ContentType.VIDEO)
+async def get_video_file_id(message: types.Message):
+    await message.answer(f"Fayl identifikatori: {message.video.file_id}")
+
+

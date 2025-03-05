@@ -2,6 +2,7 @@ from aiogram import types
 from aiogram.dispatcher.filters import CommandStart
 from loader import dp, user_db
 from data.config import ADMINS
+from keyboards.default.kanal_button import kanal_keyboard
 
 @dp.message_handler(CommandStart())
 async def bot_start(message: types.Message):
@@ -26,10 +27,15 @@ async def bot_start(message: types.Message):
             except Exception as e:
                 print(f"Admin {admin} ga xabar yuborishda xato: {e}")
 
-    # Foydalanuvchi mavjud bo‘lsa ham, uning faoliyatini yangilash
     user_db.update_last_active(user_id)
 
-    # Foydalanuvchiga xush kelibsiz xabari
     await message.answer(
-        f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring."
+        f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
+        reply_markup=kanal_keyboard  # Alohida fayldan tugmani qo‘shamiz
     )
+
+@dp.message_handler(lambda message: message.text == "📽 Barcha kinolar")
+async def send_channel_link(message: types.Message):
+    await message.answer("🎬 Yangi kinolarni birinchi bo'lib ko'rish uchun kanalimizga a'zo bo'ling:\n\n"
+                         "https://t.me/KINO_MANIA_2024")
+
