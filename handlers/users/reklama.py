@@ -151,15 +151,15 @@ async def check_admin_permission(telegram_id: int):
     admin = user_db.check_if_admin(user_id=user_id)
     return admin
 
-@dp.message_handler(commands="reklom")
-@dp.message_handler(Text("📣 Reklama"))
+@dp.message_handler(text="📣 Reklama")
 async def reklama_handler(message: types.Message):
     telegram_id = message.from_user.id
     if await check_admin_permission(telegram_id) or await check_super_admin_permission(telegram_id):
-        await ReklamaTuriState.tur.set()
+        await ReklamaTuriState.tur.set()  # Reklama turini tanlash holatiga o'tish
         await bot.send_message(chat_id=message.chat.id, text="Reklama turini tanlang:", reply_markup=get_ad_type_keyboard())
     else:
         await message.reply("Sizda ushbu amalni bajarish uchun ruxsat yo'q.")
+
 
 
 @dp.callback_query_handler(lambda c: c.data in ["ad_type_text", "ad_type_forward", "ad_type_button", "ad_type_any"], state=ReklamaTuriState.tur)

@@ -1,9 +1,12 @@
 from aiogram import executor
 
+from handlers.users.middleware import SubscriptionMiddleware
 from loader import dp,user_db,kino_db
 import middlewares, filters, handlers
 from utils.notify_admins import on_startup_notify
 from utils.set_bot_commands import set_default_commands
+
+dp.middleware.setup(SubscriptionMiddleware())
 
 
 async def on_startup(dispatcher):

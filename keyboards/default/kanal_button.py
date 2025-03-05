@@ -8,3 +8,4 @@ kanal_keyboard = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True,  # Tugmani moslashtirilgan hajmga mos qiladi
 )
+
