@@ -207,6 +207,9 @@ async def send_channel_link(message: types.Message):
         parse_mode="HTML"
     )
 
+
+#yangilanish
+
 # Shaxsiy kanal uchun no_action callback
 @dp.callback_query_handler(lambda c: c.data == "no_action")
 async def no_action_callback(callback: types.CallbackQuery):
