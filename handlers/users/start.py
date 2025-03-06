@@ -125,6 +125,14 @@ async def bot_start(message: types.Message):
     username = message.from_user.username or f"User ID: {message.from_user.full_name}"
     logger.info(f"Processing /start command for user_id={user_id}, username={username}")
 
+
+    # Foydalanuvchi mavjudligini tekshirish
+    if not user_db.select_user(user_id):
+        # Foydalanuvchini ro‘yxatga olish
+        user_db.add_user(user_id, username)
+
+        # Foydalanuvchilar sonini olish
+        user_count = user_db.count_users()
     if message.chat.type == "private":
         try:
             # Foydalanuvchi mavjudligini tekshirish
@@ -157,6 +165,7 @@ async def bot_start(message: types.Message):
                 logger.error(f"Error updating last active for user {user_id}: {e}")
                 await message.answer("⚠️ Faollikni yangilashda xatolik yuz berdi.")
                 return
+
 
             # Kanallarga obuna tekshiruvi
             channels = channel_db.get_all_channels()
