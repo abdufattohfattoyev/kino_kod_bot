@@ -5,6 +5,10 @@ from data.config import ADMINS
 from keyboards.default.kanal_button import kanal_keyboard
 from loader import dp, bot, user_db, channel_db
 import asyncio
+import logging
+from aiogram import types
+
+
 
 # Obuna tekshirish funksiyasi
 async def check_subscription(user_id: int, channel_id: int) -> bool:
@@ -101,10 +105,26 @@ async def check_subscription_callback(callback: types.CallbackQuery):
         await callback.answer()
 
 # /start komandasi
+logging.basicConfig(
+    filename='bot.log',  # Loglar faylga yoziladi
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
 @dp.message_handler(CommandStart())
 async def bot_start(message: types.Message):
+    """
+    /start komandasini boshqarish funksiyasi.
+
+    Args:
+        message: Aiogram Message obyekti
+    """
     user_id = message.from_user.id
     username = message.from_user.username or f"User ID: {message.from_user.full_name}"
+    logger.info(f"Processing /start command for user_id={user_id}, username={username}")
+
 
     # Foydalanuvchi mavjudligini tekshirish
     if not user_db.select_user(user_id):
@@ -113,18 +133,31 @@ async def bot_start(message: types.Message):
 
         # Foydalanuvchilar sonini olish
         user_count = user_db.count_users()
+<<<<<<< HEAD
 
+=======
+>>>>>>> d03560887cfdb0d1294edc6215f2b554db29c423
     if message.chat.type == "private":
-        if not user_db.select_user(user_id):
-            user_db.add_user(user_id, username)
-            user_count = user_db.count_users()
-            for admin in ADMINS:
+        try:
+            # Foydalanuvchi mavjudligini tekshirish
+            if not user_db.select_user(user_id):
                 try:
-                    await dp.bot.send_message(
-                        admin,
-                        f"🆕 Yangi foydalanuvchi: @{username}\n👥 Jami foydalanuvchilar soni: {user_count}"
-                    )
+                    user_db.add_user(user_id, username)
+                    user_count = user_db.count_users()
+                    logger.info(f"New user registered: @{username}, Total users: {user_count}")
+
+                    # Adminlarga xabar yuborish
+                    for admin in ADMINS:
+                        try:
+                            await dp.bot.send_message(
+                                admin,
+                                f"🆕 Yangi foydalanuvchi: @{username}\n👥 Jami foydalanuvchilar soni: {user_count}"
+                            )
+                        except Exception as e:
+                            logger.error(f"Failed to send message to admin {admin}: {e}")
+
                 except Exception as e:
+<<<<<<< HEAD
                     print(f"Admin {admin} ga xabar yuborishda xato: {e}")
 
         user_db.update_last_active(user_id)
@@ -137,16 +170,50 @@ async def bot_start(message: types.Message):
                 markup = get_subscription_keyboard(unsubscribed)
                 msg = await message.answer(text, reply_markup=markup, parse_mode="HTML")
                 asyncio.create_task(auto_check_subscription(user_id, msg))
+=======
+                    logger.error(f"Error registering user {user_id}: {e}")
+                    await message.answer("⚠️ Ro'yxatdan o'tishda xatolik yuz berdi. Iltimos, qayta urinib ko'ring.")
+                    return
+
+            # Foydalanuvchi faolligini yangilash
+            try:
+                user_db.update_last_active(user_id)
+                logger.info(f"Last active updated for user {user_id}")
+            except Exception as e:
+                logger.error(f"Error updating last active for user {user_id}: {e}")
+                await message.answer("⚠️ Faollikni yangilashda xatolik yuz berdi.")
+                return
+
+
+            # Kanallarga obuna tekshiruvi
+            channels = channel_db.get_all_channels()
+            if channels:
+                if not await is_subscribed_to_all_channels(user_id):
+                    unsubscribed = await get_unsubscribed_channels(user_id)
+                    text = "⚠️ <b>Botdan foydalanish uchun quyidagi kanallarga obuna bo‘ling:</b>"
+                    markup = get_subscription_keyboard(unsubscribed)
+                    try:
+                        msg = await message.answer(text, reply_markup=markup, parse_mode="HTML")
+                        asyncio.create_task(auto_check_subscription(user_id, msg))
+                    except Exception as e:
+                        logger.error(f"Error sending subscription message to user {user_id}: {e}")
+                        await message.answer("⚠️ Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.")
+                else:
+                    await message.answer(
+                        f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
+                        reply_markup=kanal_keyboard
+                    )
+>>>>>>> d03560887cfdb0d1294edc6215f2b554db29c423
             else:
                 await message.answer(
                     f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
                     reply_markup=kanal_keyboard
                 )
-        else:
-            await message.answer(
-                f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
-                reply_markup=kanal_keyboard
-            )
+
+        except Exception as e:
+            logger.error(f"Unexpected error in bot_start for user {user_id}: {e}")
+            await message.answer("⚠️ Botda kutilmagan xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko'ring.")
+
     else:
         await message.reply("👋 Botdan shaxsiy chatda foydalanishingiz mumkin!")
 
@@ -158,6 +225,9 @@ async def send_channel_link(message: types.Message):
         "<b>📌 Kanal:</b>  https://t.me/Kino_mania_2024",
         parse_mode="HTML"
     )
+
+
+#yangilanish
 
 # Shaxsiy kanal uchun no_action callback
 @dp.callback_query_handler(lambda c: c.data == "no_action")
