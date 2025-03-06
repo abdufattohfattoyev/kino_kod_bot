@@ -8,7 +8,7 @@ import asyncio
 import logging
 from aiogram import types
 
-
+#
 
 # Obuna tekshirish funksiyasi
 async def check_subscription(user_id: int, channel_id: int) -> bool:
@@ -67,7 +67,7 @@ async def auto_check_subscription(user_id: int, message: types.Message):
     while True:
         await asyncio.sleep(5)  # Har 5 soniyada tekshirish
         if await is_subscribed_to_all_channels(user_id):
-            new_text = "👋 <b>Assalomu alaykum,Kino Botga xush kelibsiz.</b>\n\n✍🏻<b>Kino kodini yuboring.</b>"
+            new_text = "🎉 <b>Tabriklaymiz!</b> Endi botdan to'liq foydalanishingiz mumkin."
             if message.text != new_text:
                 await message.edit_text(new_text, parse_mode="HTML")
             break
@@ -91,7 +91,7 @@ async def check_subscription_callback(callback: types.CallbackQuery):
         return
 
     if await is_subscribed_to_all_channels(user_id):
-        new_text = "👋 <b>Assalomu alaykum,Kino Botga xush kelibsiz.</b>\n\n✍🏻<b>Kino kodini yuboring.</b>"
+        new_text = "🎉 <b>Tabriklaymiz!</b> Endi botdan to'liq foydalanishingiz mumkin."
         if callback.message.text != new_text:
             await callback.message.edit_text(new_text, parse_mode="HTML")
         await callback.answer()
@@ -133,10 +133,6 @@ async def bot_start(message: types.Message):
 
         # Foydalanuvchilar sonini olish
         user_count = user_db.count_users()
-<<<<<<< HEAD
-
-=======
->>>>>>> d03560887cfdb0d1294edc6215f2b554db29c423
     if message.chat.type == "private":
         try:
             # Foydalanuvchi mavjudligini tekshirish
@@ -157,20 +153,6 @@ async def bot_start(message: types.Message):
                             logger.error(f"Failed to send message to admin {admin}: {e}")
 
                 except Exception as e:
-<<<<<<< HEAD
-                    print(f"Admin {admin} ga xabar yuborishda xato: {e}")
-
-        user_db.update_last_active(user_id)
-
-
-        if channel_db.get_all_channels():
-            if not await is_subscribed_to_all_channels(user_id):
-                unsubscribed = await get_unsubscribed_channels(user_id)
-                text = "⚠️ <b>Botdan foydalanish uchun quyidagi kanallarga obuna bo‘ling:</b>"
-                markup = get_subscription_keyboard(unsubscribed)
-                msg = await message.answer(text, reply_markup=markup, parse_mode="HTML")
-                asyncio.create_task(auto_check_subscription(user_id, msg))
-=======
                     logger.error(f"Error registering user {user_id}: {e}")
                     await message.answer("⚠️ Ro'yxatdan o'tishda xatolik yuz berdi. Iltimos, qayta urinib ko'ring.")
                     return
@@ -203,7 +185,6 @@ async def bot_start(message: types.Message):
                         f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
                         reply_markup=kanal_keyboard
                     )
->>>>>>> d03560887cfdb0d1294edc6215f2b554db29c423
             else:
                 await message.answer(
                     f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
