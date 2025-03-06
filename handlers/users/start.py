@@ -63,7 +63,7 @@ async def auto_check_subscription(user_id: int, message: types.Message):
     while True:
         await asyncio.sleep(5)  # Har 5 soniyada tekshirish
         if await is_subscribed_to_all_channels(user_id):
-            new_text = "🎉 <b>Tabriklaymiz!</b> Endi botdan to'liq foydalanishingiz mumkin."
+            new_text = "👋 <b>Assalomu alaykum,Kino Botga xush kelibsiz.</b>\n\n✍🏻<b>Kino kodini yuboring.</b>"
             if message.text != new_text:
                 await message.edit_text(new_text, parse_mode="HTML")
             break
@@ -87,7 +87,7 @@ async def check_subscription_callback(callback: types.CallbackQuery):
         return
 
     if await is_subscribed_to_all_channels(user_id):
-        new_text = "🎉 <b>Tabriklaymiz!</b> Endi botdan to'liq foydalanishingiz mumkin."
+        new_text = "👋 <b>Assalomu alaykum,Kino Botga xush kelibsiz.</b>\n\n✍🏻<b>Kino kodini yuboring.</b>"
         if callback.message.text != new_text:
             await callback.message.edit_text(new_text, parse_mode="HTML")
         await callback.answer()
@@ -106,7 +106,6 @@ async def bot_start(message: types.Message):
     user_id = message.from_user.id
     username = message.from_user.username or f"User ID: {message.from_user.full_name}"
 
-<<<<<<< HEAD
     # Foydalanuvchi mavjudligini tekshirish
     if not user_db.select_user(user_id):
         # Foydalanuvchini ro‘yxatga olish
@@ -114,7 +113,7 @@ async def bot_start(message: types.Message):
 
         # Foydalanuvchilar sonini olish
         user_count = user_db.count_users()
-=======
+
     if message.chat.type == "private":
         if not user_db.select_user(user_id):
             user_db.add_user(user_id, username)
@@ -129,7 +128,7 @@ async def bot_start(message: types.Message):
                     print(f"Admin {admin} ga xabar yuborishda xato: {e}")
 
         user_db.update_last_active(user_id)
->>>>>>> 99f03178aa892f756ba97f7af927ce9c921321a0
+
 
         if channel_db.get_all_channels():
             if not await is_subscribed_to_all_channels(user_id):
@@ -156,7 +155,7 @@ async def bot_start(message: types.Message):
 async def send_channel_link(message: types.Message):
     await message.answer(
         "<b>🎬 Yangi kinolarni birinchi bo'lib ko'rish uchun kanalimizga a'zo bo'ling:</b>\n\n"
-        "<b>📌 Kanal:</b>  https://t.me/UrishKinolar4K",
+        "<b>📌 Kanal:</b>  https://t.me/Kino_mania_2024",
         parse_mode="HTML"
     )
 

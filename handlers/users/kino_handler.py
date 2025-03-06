@@ -170,27 +170,6 @@ async def movie_kino_delete(message: types.Message, state: FSMContext):
 async def search_kino_handler(message: types.Message):
     user_id = message.from_user.id
     user_db.update_last_active(user_id)
-<<<<<<< HEAD
-    if message.text.isdigit():
-
-        post_id = int(message.text)
-        data = kino_db.search_kino_by_post_id(post_id)
-        if data:
-            try:
-                # Send the video to the user
-                await bot.send_video(
-                    chat_id=message.from_user.id,
-                    video=data['file_id'],
-                    caption=f"{data['caption']} \n\n🗂Kinoni Yuklash Soni: {data['count_download']} \n\n📌 Barcha kinolar:  T.me/Kino_Mania_2024"
-                )
-
-                # Update the download count in the database
-                kino_db.update_download_count(post_id)
-            except Exception as err:
-                await message.answer(f"Kino topildi lekin yuborishda xatolik: {err}")
-        else:
-            await message.answer(f"{post_id} kod bilan kino topilmadi")
-=======
     post_id = int(message.text)
     data = kino_db.search_kino_by_post_id(post_id)
     if data:
@@ -201,14 +180,13 @@ async def search_kino_handler(message: types.Message):
                 caption=(
                     f"<b>{data['caption']}</b>\n\n"
                     f"📥 <b>Kino Yuklash Soni:</b> {data['count_download']}\n\n"
-                    f"📌 <b>Barcha kinolar:</b> T.me/UrishKinolar4K\n\n"
+                    f"📌 <b>Barcha kinolar:</b> T.me/Kino_Mania_2024\n\n"
                 ),
                 parse_mode='HTML'
             )
             kino_db.update_download_count(post_id)
         except Exception as err:
             await message.answer(f"❌ Kino yuborishda xatolik: {err}", parse_mode='HTML')
->>>>>>> 99f03178aa892f756ba97f7af927ce9c921321a0
     else:
         await message.answer(f"⚠️ <b>{post_id}</b> kodi bilan kino topilmadi.", parse_mode="HTML")
 
