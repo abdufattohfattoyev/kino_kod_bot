@@ -44,7 +44,7 @@ class KinoDatabase(Database):
     def count_kinos(self):
         sql = "SELECT COUNT(*) FROM Kino"
         result = self.execute(sql, fetchone=True)
-        return {"count": result[0] if result else 0}
+        return {"Jami Kinolar": result[0] if result else 0}
 
     def search_kino_by_caption(self, caption: str):
         sql = "SELECT file_id, caption FROM Kino WHERE caption LIKE ?"

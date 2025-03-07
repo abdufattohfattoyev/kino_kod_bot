@@ -38,40 +38,128 @@ class KinoDelete(StatesGroup):
     is_confirm = State()
 
 # Statistika ko‘rish
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 @dp.message_handler(text="📊 Statistika")
 async def show_stats(message: types.Message):
-    if message.from_user.id in ADMINS:
-        try:
-            total_kinos = kino_db.count_kinos()
-            total_users = user_db.count_users()
-            daily_users = user_db.count_daily_users()
-            weekly_users = user_db.count_weekly_users()
-            monthly_users = user_db.count_monthly_users()
-
-            active_daily = user_db.count_active_daily_users()
-            active_weekly = user_db.count_active_weekly_users()
-            active_monthly = user_db.count_active_monthly_users()
-
-            stats_message = (
-                "📊 <b>Statistika</b>\n\n"
-                "🎬 <b>Kinolar</b>\n"
-                f" ├ 📂 Jami kinolar: <b>{total_kinos}</b>\n\n"
-                "👥 <b>Foydalanuvchilar</b>\n"
-                f" ├ 👤 Jami foydalanuvchilar: <b>{total_users}</b>\n"
-                f" ├ 🗓 Kunlik yangi: <b>{daily_users}</b>\n"
-                f" ├ 📅 Haftalik yangi: <b>{weekly_users}</b>\n"
-                f" └ 📆 Oylik yangi: <b>{monthly_users}</b>\n\n"
-                "🔥 <b>Faol foydalanuvchilar</b>\n"
-                f" ├ 🚀 Kunlik faol: <b>{active_daily}</b>\n"
-                f" ├ ⚡️ Haftalik faol: <b>{active_weekly}</b>\n"
-                f" └ 🔥 Oylik faol: <b>{active_monthly}</b>"
-            )
-            await message.answer(stats_message, parse_mode="HTML")
-        except Exception as e:
-            await message.answer("❌ <b>Statistika olishda xatolik yuz berdi.</b>", parse_mode="HTML")
-            print(f"[Xatolik]: {e}")
-    else:
+    if message.from_user.id not in ADMINS:
         await message.answer("🚫 <b>Siz admin emassiz.</b>", parse_mode="HTML")
+        return
+
+    try:
+        total_kinos = kino_db.count_kinos()
+        total_users = user_db.count_users()
+        daily_users = user_db.count_daily_users()
+        weekly_users = user_db.count_weekly_users()
+        monthly_users = user_db.count_monthly_users()
+
+        active_daily = user_db.count_active_daily_users()
+        active_weekly = user_db.count_active_weekly_users()
+        active_monthly = user_db.count_active_monthly_users()
+
+        stats_message = (
+            "📊 <b>Statistika</b>\n"
+            "─────────────────\n"
+            "🎬 Kinolar: <b>{total_kinos}</b>\n"
+            "👥 Foydalanuvchilar: <b>{total_users}</b>\n"
+            "─────────────────\n"
+            "🗓 Kunlik: <b>{daily_users}</b> | Faol: <b>{active_daily}</b>\n"
+            "📅 Haftalik: <b>{weekly_users}</b> | Faol: <b>{active_weekly}</b>\n"
+            "📆 Oylik: <b>{monthly_users}</b> | Faol: <b>{active_monthly}</b>"
+        ).format(
+            total_kinos=total_kinos,
+            total_users=total_users,
+            daily_users=daily_users,
+            weekly_users=weekly_users,
+            monthly_users=monthly_users,
+            active_daily=active_daily,
+            active_weekly=active_weekly,
+            active_monthly=active_monthly
+        )
+
+        # Inline klaviatura yaratish
+        markup = InlineKeyboardMarkup().add(
+            InlineKeyboardButton("🔄 Yangilash", callback_data="refresh_stats")
+        )
+
+        await message.answer(stats_message, parse_mode="HTML", reply_markup=markup)
+    except Exception as e:
+        await message.answer("❌ <b>Statistika olishda xatolik yuz berdi.</b>", parse_mode="HTML")
+        print(f"[Xatolik]: {e}")
+
+# Callback handler - Yangilash tugmasi uchun
+@dp.callback_query_handler(lambda c: c.data == "refresh_stats")
+async def refresh_stats_callback(callback: types.CallbackQuery):
+    # Animatsiya bosqichlari
+    stages = [
+        "✨ <b>Yangilanmoqda</b> |◦◦◦◦◦|",
+        "✨ <b>Yangilanmoqda</b> |●◦◦◦◦|",
+        "✨ <b>Yangilanmoqda</b> |●●◦◦◦|",
+        "✨ <b>Yangilanmoqda</b> |●●●◦◦|",
+        "✨ <b>Yangilanmoqda</b> |●●●●◦|"
+    ]
+
+    # Yuklash animatsiyasi
+    for stage in stages:
+        await callback.message.edit_text(stage, parse_mode="HTML")
+        await asyncio.sleep(0.5)  # Har bir bosqich 0.3 soniya
+
+    try:
+        # Ma'lumotlarni olish
+        total_kinos = kino_db.count_kinos()
+        total_users = user_db.count_users()
+        daily_users = user_db.count_daily_users()
+        weekly_users = user_db.count_weekly_users()
+        monthly_users = user_db.count_monthly_users()
+
+        active_daily = user_db.count_active_daily_users()
+        active_weekly = user_db.count_active_weekly_users()
+        active_monthly = user_db.count_active_monthly_users()
+
+        stats_message = (
+            "📊 <b>Statistika</b>\n"
+            "─────────────────\n"
+            "🎬 Kinolar: <b>{total_kinos}</b>\n"
+            "👥 Foydalanuvchilar: <b>{total_users}</b>\n"
+            "─────────────────\n"
+            "🗓 Kunlik: <b>{daily_users}</b> | Faol: <b>{active_daily}</b>\n"
+            "📅 Haftalik: <b>{weekly_users}</b> | Faol: <b>{active_weekly}</b>\n"
+            "📆 Oylik: <b>{monthly_users}</b> | Faol: <b>{active_monthly}</b>"
+        ).format(
+            total_kinos=total_kinos,
+            total_users=total_users,
+            daily_users=daily_users,
+            weekly_users=weekly_users,
+            monthly_users=monthly_users,
+            active_daily=active_daily,
+            active_weekly=active_weekly,
+            active_monthly=active_monthly
+        )
+
+        # Inline klaviatura
+        markup = InlineKeyboardMarkup().add(
+            InlineKeyboardButton("🔄 Yangilash", callback_data="refresh_stats")
+        )
+
+        # Yangilangan statistika va tasdiq
+        await callback.message.edit_text(stats_message, parse_mode="HTML", reply_markup=markup)
+        await callback.answer("✅ Muvaffaqiyatli yangilandi!", show_alert=False)
+    except Exception as e:
+        # Xatolik uchun chiroyli dizayn
+        error_message = (
+            "❌ <b>Xatolik!</b>\n"
+            " Ma'lumotlarni yangilab bo‘lmadi.\n"
+            " Qayta urinib ko‘ring!"
+        )
+        await callback.message.edit_text(
+            error_message,
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup().add(
+                InlineKeyboardButton("♻️ Qayta urinish", callback_data="refresh_stats")
+            )
+        )
+        print(f"[Xatolik]: {e}")
+        await callback.answer("❌ Xatolik yuz berdi!", show_alert=False)
 
 # Kino qo‘shish
 @dp.message_handler(text="➕ Kino Qo‘shish")
@@ -180,7 +268,7 @@ async def search_kino_handler(message: types.Message):
                 caption=(
                     f"<b>{data['caption']}</b>\n\n"
                     f"📥 <b>Kino Yuklash Soni:</b> {data['count_download']}\n\n"
-                    f"📌 <b>Barcha kinolar:</b> T.me/Kino_Mania_2024\n\n"
+                    f"📌 <b>Barcha kinolar:</b> <b>T.me/Kino_Mania_2024</b>\n\n"
                 ),
                 parse_mode='HTML'
             )
