@@ -4,8 +4,7 @@ from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.utils.exceptions import MessageNotModified
 
 from data.config import ADMINS
-from handlers.users.channel_add import get_unsubscribed_channels
-from handlers.users.start import get_subscription_keyboard, is_subscribed_to_all_channels
+from handlers.users.start import get_subscription_keyboard, is_subscribed_to_all_channels, get_unsubscribed_channels
 from loader import bot
 
 
