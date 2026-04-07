@@ -195,10 +195,8 @@ async def admin_add_id(message: types.Message, state: FSMContext):
                 update_env_admins(ADMINS)
                 logger.info(f"Admin {telegram_id} added successfully.")
             except Exception as e:
-                logger.error(f"Failed to update .env file for admin {telegram_id}: {e}")
-                await message.answer("❌ .env faylini yangilashda xatolik yuz berdi. Admin ma'lumotlar bazasiga qo'shildi.")
-                return
-        await message.answer(f"✅ Foydalanuvchi (ID: {telegram_id}) admin sifatida qo‘shildi.")
+                logger.warning(f".env yangilashda xatolik (lekin DB da saqlandi): {e}")
+        await message.answer(f"✅ Foydalanuvchi (ID: {telegram_id}) admin sifatida qo’shildi.")
         try:
             await bot.send_message(telegram_id, "🎉 Siz botning admini sifatida qo‘shildingiz!")
         except Exception as e:
@@ -262,10 +260,8 @@ async def admin_remove_confirm(callback: types.CallbackQuery, state: FSMContext)
                 update_env_admins(ADMINS)
                 logger.info(f"Admin {telegram_id} removed successfully.")
             except Exception as e:
-                logger.error(f"Failed to update .env file for admin {telegram_id}: {e}")
-                await callback.message.edit_text("❌ .env faylini yangilashda xatolik yuz berdi. Admin ma'lumotlar bazasidan o'chirildi.")
-                return
-        await callback.message.edit_text(f"✅ Foydalanuvchi (ID: {telegram_id}) adminlikdan o‘chirildi.")
+                logger.warning(f".env yangilashda xatolik (lekin DB da saqlandi): {e}")
+        await callback.message.edit_text(f"✅ Foydalanuvchi (ID: {telegram_id}) adminlikdan o’chirildi.")
         try:
             await bot.send_message(telegram_id, "❌ Siz bot adminligidan olib tashlandiniz.")
         except Exception as e:

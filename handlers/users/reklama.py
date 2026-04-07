@@ -144,12 +144,7 @@ async def check_super_admin_permission(telegram_id: int):
     return telegram_id in ADMINS
 
 async def check_admin_permission(telegram_id: int):
-    user = user_db.select_user(telegram_id=telegram_id)
-    if not user:
-        return False
-    user_id = user[0]
-    admin = user_db.check_if_admin(user_id=user_id)
-    return admin
+    return user_db.check_if_admin(telegram_id)
 
 @dp.message_handler(text="📣 Reklama")
 async def reklama_handler(message: types.Message):

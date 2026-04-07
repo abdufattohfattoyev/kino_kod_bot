@@ -1,10 +1,8 @@
-from aiogram import Bot, Dispatcher, types
+from aiogram import types
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters import Command
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils import executor
-from data.config import ADMINS, BOT_TOKEN
+from data.config import ADMINS
 from keyboards.default.admin_menu import admin_menu
 from loader import dp, channel_db, bot
 
@@ -37,33 +35,7 @@ def get_delete_keyboard(channels):
 class ChannelAdd(StatesGroup):
     channel_link = State()
 
-# Obuna holatini tekshirish funksiyasi
-async def check_subscription(user_id: int, channel_id: int) -> bool:
-    try:
-        member = await bot.get_chat_member(chat_id=channel_id, user_id=user_id)
-        return member.status in ["member", "administrator", "creator"]
-    except Exception as e:
-        print(f"❌ Xatolik: {channel_id} kanalida foydalanuvchi {user_id} ni tekshirishda: {e}")
-        return False
-
-async def is_subscribed_to_all_channels(user_id: int) -> bool:
-    channels = channel_db.get_all_channels()
-    if not channels:
-        return True
-    for channel_id, _, _ in channels:
-        if not await check_subscription(user_id, channel_id):
-            return False
-    return True
-
-async def get_unsubscribed_channels(user_id: int) -> list:
-    channels = channel_db.get_all_channels()
-    unsubscribed = []
-    for channel_id, title, static_link in channels:
-        if not await check_subscription(user_id, channel_id):
-            unsubscribed.append((static_link, title))  # Statik havola ishlatiladi
-    return unsubscribed
-
-# Kanal bo‘limi
+# Kanal bo’limi
 @dp.message_handler(text="📢 Kanallar")
 async def channel_section(message: types.Message):
     if message.from_user.id in ADMINS:

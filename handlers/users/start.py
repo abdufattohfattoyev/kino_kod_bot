@@ -8,13 +8,8 @@ from loader import dp, bot, user_db, channel_db
 import asyncio
 import logging
 
-# Logging sozlamalari
-logging.basicConfig(
-    filename='bot.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
+
 
 # Kanalda obuna tekshirish
 async def check_subscription(user_id: int, channel_id: int) -> bool:
@@ -24,6 +19,7 @@ async def check_subscription(user_id: int, channel_id: int) -> bool:
     except Exception as e:
         logger.error(f"Kanal {channel_id} da {user_id} tekshirishda xatolik: {e}")
         return False
+
 
 # Barcha kanallarga obuna tekshiruvi
 async def is_subscribed_to_all_channels(user_id: int) -> bool:
