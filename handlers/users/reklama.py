@@ -121,7 +121,7 @@ class Advertisement:
         except Exception as e:
             logger.error(f"Status xabar yuborishda xatolik: {e}")
 
-        UPDATE_EVERY = 25   # har N foydalanuvchidan keyin yangilash
+        UPDATE_EVERY = 10   # har N foydalanuvchidan keyin yangilash
         DELAY        = 0.05  # har xabar orasidagi kutish (20 msg/sec)
 
         for i, user in enumerate(users):
@@ -153,14 +153,25 @@ class Advertisement:
 
     async def _send_with_retry(self, chat_id: int, max_retries: int = 3):
         for attempt in range(max_retries):
+            if not self.running:
+                return
             try:
-                await _send_to_user(chat_id, self)
+                await asyncio.wait_for(_send_to_user(chat_id, self), timeout=20)
                 self.sent_count += 1
+                return
+            except asyncio.TimeoutError:
+                logger.warning(f"User {chat_id} ga yuborishda timeout (urinish {attempt+1})")
+                self.failed_count += 1
                 return
             except RetryAfter as e:
                 wait = e.timeout + 1
                 logger.info(f"FloodWait {wait}s, kutilmoqda...")
-                await asyncio.sleep(wait)
+                await self._update_status(f"⏳ FloodWait {wait}s kutilmoqda...")
+                # FloodWait paytida ham to'xtatish imkoni bo'lsin
+                for _ in range(wait):
+                    if not self.running:
+                        return
+                    await asyncio.sleep(1)
                 # retry davom etadi
             except (BotBlocked, ChatNotFound, Unauthorized,
                     UserDeactivated, CantTalkWithBots):
@@ -168,7 +179,8 @@ class Advertisement:
                 return
             except Exception as e:
                 logger.warning(f"User {chat_id} ga yuborishda xatolik (urinish {attempt+1}): {e}")
-                await asyncio.sleep(1)
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(0.5)
         # Barcha urinishlar tugadi
         self.failed_count += 1
 
