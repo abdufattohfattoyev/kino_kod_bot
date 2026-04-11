@@ -53,11 +53,11 @@ def is_main_admin(user_id: int):
 @dp.message_handler(Command("admin"))
 async def admin_panel(message: types.Message):
     if user_db.check_if_admin(message.from_user.id) or message.from_user.id in ADMINS:
-        await message.answer("Admin paneliga xush kelibsiz! Kerakli bo‘limni tanlang:", reply_markup=admin_menu)
+        await message.answer("Admin paneliga xush kelibsiz! Kerakli bo'limni tanlang:", reply_markup=admin_menu)
     else:
         await message.answer("🚫 Siz admin emassiz.")
 
-# Statistika ko‘rish
+# Statistika ko'rish
 def _build_bar(value: int, max_value: int, width: int = 10) -> str:
     """Oddiy matnli progress bar."""
     if max_value == 0:
@@ -110,8 +110,8 @@ def _build_main_stats() -> str:
 def _build_top10() -> str:
     tops = kino_db.get_top_kinos(10)
     if not tops:
-        return "📭 Hozircha kinolar yo’q."
-    lines = ["🏆 <b>Eng ko’p yuklab olingan 10 ta kino</b>\n━━━━━━━━━━━━━━━━━"]
+        return "📭 Hozircha kinolar yo'q."
+    lines = ["🏆 <b>Eng ko'p yuklab olingan 10 ta kino</b>\n━━━━━━━━━━━━━━━━━"]
     for i, (post_id, caption, count) in enumerate(tops, 1):
         medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, f"{i}.")
         short = (caption[:30] + "…") if caption and len(caption) > 30 else (caption or "—")
@@ -122,9 +122,9 @@ def _build_top10() -> str:
 def _build_growth() -> str:
     rows = user_db.get_daily_growth(days=7)
     if not rows:
-        return "📭 Ma’lumot yo’q."
+        return "📭 Ma'lumot yo'q."
     max_cnt = max(cnt for _, cnt in rows) if rows else 1
-    lines = ["📈 <b>So’nggi 7 kun — yangi foydalanuvchilar</b>\n━━━━━━━━━━━━━━━━━"]
+    lines = ["📈 <b>So'nggi 7 kun — yangi foydalanuvchilar</b>\n━━━━━━━━━━━━━━━━━"]
     for day, cnt in rows:
         bar = _build_bar(cnt, max_cnt, width=12)
         lines.append(f"<code>{day[5:]}</code>  {bar}  <b>{cnt}</b>")
@@ -135,7 +135,7 @@ def _build_growth() -> str:
 
 def _stats_markup(page: str = "main") -> InlineKeyboardMarkup:
     btn_top = InlineKeyboardButton("🏆 Top-10", callback_data="stats_top10")
-    btn_growth = InlineKeyboardButton("📈 O’sish", callback_data="stats_growth")
+    btn_growth = InlineKeyboardButton("📈 O'sish", callback_data="stats_growth")
     btn_main = InlineKeyboardButton("📊 Asosiy", callback_data="stats_main")
     btn_refresh = InlineKeyboardButton("🔄 Yangilash", callback_data="refresh_stats")
 
@@ -172,7 +172,7 @@ async def stats_callback(callback: types.CallbackQuery):
 
     action = callback.data
     if action in ("refresh_stats", "stats_main"):
-        # Progress bar ko’rsatamiz
+        # Progress bar ko'rsatamiz
         for stage in ["◦◦◦◦◦", "●◦◦◦◦", "●●◦◦◦", "●●●◦◦", "●●●●◦"]:
             try:
                 await callback.message.edit_text(
@@ -200,11 +200,11 @@ async def stats_callback(callback: types.CallbackQuery):
         logger.error(f"stats_callback xatolik ({action}): {e}")
         await callback.answer()
 
-# Admin qo‘shish (faqat asosiy admin uchun)
-@dp.message_handler(text="👤 Admin Qo‘shish")
+# Admin qo'shish (faqat asosiy admin uchun)
+@dp.message_handler(text="👤 Admin Qo'shish")
 async def admin_add_start(message: types.Message, state: FSMContext):
     if not is_main_admin(message.from_user.id):
-        await message.answer("🚫 Faqat asosiy admin yangi admin qo‘sha oladi.")
+        await message.answer("🚫 Faqat asosiy admin yangi admin qo'sha oladi.")
         return
     await AdminAdd.telegram_id.set()
     await message.answer("👤 Yangi adminning Telegram ID sini kiriting:")
@@ -220,7 +220,7 @@ async def admin_add_id(message: types.Message, state: FSMContext):
         telegram_id = int(message.text)
         user = user_db.select_user(telegram_id)
         if not user:
-            await message.answer("❌ Bu Telegram ID bilan foydalanuvchi topilmadi. Foydalanuvchi bot bilan suhbat boshlagan bo‘lishi kerak.")
+            await message.answer("❌ Bu Telegram ID bilan foydalanuvchi topilmadi. Foydalanuvchi bot bilan suhbat boshlagan bo'lishi kerak.")
             return
         if user_db.check_if_admin(telegram_id) or telegram_id in ADMINS:
             await message.answer("⚠️ Bu foydalanuvchi allaqachon admin.")
@@ -234,9 +234,9 @@ async def admin_add_id(message: types.Message, state: FSMContext):
                 logger.info(f"Admin {telegram_id} added successfully.")
             except Exception as e:
                 logger.warning(f".env yangilashda xatolik (lekin DB da saqlandi): {e}")
-        await message.answer(f"✅ Foydalanuvchi (ID: {telegram_id}) admin sifatida qo’shildi.")
+        await message.answer(f"✅ Foydalanuvchi (ID: {telegram_id}) admin sifatida qo'shildi.")
         try:
-            await bot.send_message(telegram_id, "🎉 Siz botning admini sifatida qo‘shildingiz!")
+            await bot.send_message(telegram_id, "🎉 Siz botning admini sifatida qo'shildingiz!")
         except Exception as e:
             logger.error(f"Failed to notify new admin {telegram_id}: {e}")
         await state.finish()
@@ -244,14 +244,14 @@ async def admin_add_id(message: types.Message, state: FSMContext):
     except ValueError:
         await message.answer("❌ Iltimos, Telegram ID ni faqat raqam shaklida kiriting.")
 
-# Admin o‘chirish (faqat asosiy admin uchun)
-@dp.message_handler(text="🗑 Admin O‘chirish")
+# Admin o'chirish (faqat asosiy admin uchun)
+@dp.message_handler(text="🗑 Admin O'chirish")
 async def admin_remove_start(message: types.Message, state: FSMContext):
     if not is_main_admin(message.from_user.id):
-        await message.answer("🚫 Faqat asosiy admin adminlarni o‘chira oladi.")
+        await message.answer("🚫 Faqat asosiy admin adminlarni o'chira oladi.")
         return
     await AdminRemove.telegram_id.set()
-    await message.answer("🗑 O‘chirmoqchi bo‘lgan adminning Telegram ID sini kiriting:")
+    await message.answer("🗑 O'chirmoqchi bo'lgan adminning Telegram ID sini kiriting:")
 
 @dp.message_handler(state=AdminRemove.telegram_id, content_types=types.ContentType.TEXT)
 async def admin_remove_id(message: types.Message, state: FSMContext):
@@ -263,7 +263,7 @@ async def admin_remove_id(message: types.Message, state: FSMContext):
     try:
         telegram_id = int(message.text)
         if telegram_id == message.from_user.id:
-            await message.answer("❌ O‘zingizni adminlikdan o‘chira olmaysiz.")
+            await message.answer("❌ O'zingizni adminlikdan o'chira olmaysiz.")
             return
         user = user_db.select_user(telegram_id)
         if not user:
@@ -280,7 +280,7 @@ async def admin_remove_id(message: types.Message, state: FSMContext):
             InlineKeyboardButton("❌ Bekor qilish", callback_data="cancel_remove_admin")
         )
         await message.answer(
-            f"🗑 Foydalanuvchi (ID: {telegram_id}, Username: {user[2] or 'N/A'}) adminlikdan o‘chirilsinmi?",
+            f"🗑 Foydalanuvchi (ID: {telegram_id}, Username: {user[2] or 'N/A'}) adminlikdan o'chirilsinmi?",
             reply_markup=markup
         )
     except ValueError:
@@ -299,7 +299,7 @@ async def admin_remove_confirm(callback: types.CallbackQuery, state: FSMContext)
                 logger.info(f"Admin {telegram_id} removed successfully.")
             except Exception as e:
                 logger.warning(f".env yangilashda xatolik (lekin DB da saqlandi): {e}")
-        await callback.message.edit_text(f"✅ Foydalanuvchi (ID: {telegram_id}) adminlikdan o’chirildi.")
+        await callback.message.edit_text(f"✅ Foydalanuvchi (ID: {telegram_id}) adminlikdan o'chirildi.")
         try:
             await bot.send_message(telegram_id, "❌ Siz bot adminligidan olib tashlandiniz.")
         except Exception as e:
@@ -310,8 +310,8 @@ async def admin_remove_confirm(callback: types.CallbackQuery, state: FSMContext)
     await callback.message.answer("Admin menyusiga qaytish uchun tugmani bosing:", reply_markup=admin_menu)
     await callback.answer()
 
-# Adminlar ro‘yxatini ko‘rish (barcha adminlar uchun ruxsat berilgan)
-@dp.message_handler(text="📋 Adminlar Ro‘yxati")
+# Adminlar ro'yxatini ko'rish (barcha adminlar uchun ruxsat berilgan)
+@dp.message_handler(text="📋 Adminlar Ro'yxati")
 async def show_admins_list(message: types.Message):
     if not user_db.check_if_admin(message.from_user.id) and message.from_user.id not in ADMINS:
         await message.answer("🚫 Siz admin emassiz.")
@@ -319,16 +319,16 @@ async def show_admins_list(message: types.Message):
     try:
         admins = user_db.get_all_admins()
         if not admins:
-            await message.answer("📋 Hozirda hech qanday admin yo‘q.")
+            await message.answer("📋 Hozirda hech qanday admin yo'q.")
             return
         admin_list = "\n".join([f"👤 ID: {admin[0]}, Username: {admin[1] or 'N/A'}" for admin in admins])
-        await message.answer(f"📋 <b>Adminlar ro‘yxati:</b>\n{admin_list}", parse_mode="HTML")
+        await message.answer(f"📋 <b>Adminlar ro'yxati:</b>\n{admin_list}", parse_mode="HTML")
     except Exception as e:
-        await message.answer("❌ Adminlar ro‘yxatini olishda xatolik yuz berdi.")
+        await message.answer("❌ Adminlar ro'yxatini olishda xatolik yuz berdi.")
         logger.error(f"Error fetching admins list: {e}")
 
-# So’rovlar statistikasi
-@dp.message_handler(text="📨 So’rovlar")
+# So'rovlar statistikasi
+@dp.message_handler(text="📨 So'rovlar")
 async def show_join_requests(message: types.Message):
     if not user_db.check_if_admin(message.from_user.id) and message.from_user.id not in ADMINS:
         await message.answer("🚫 Siz admin emassiz.")
@@ -339,13 +339,13 @@ async def show_join_requests(message: types.Message):
     channels = {ch[0]: ch[1] for ch in channel_db.get_all_channels()}  # {id: title}
 
     if total == 0:
-        await message.answer("📭 Hozircha hech kim so’rov yuborgan emas.")
+        await message.answer("📭 Hozircha hech kim so'rov yuborgan emas.")
         return
 
-    lines = [f"📨 <b>Jami so’rovlar: {total} ta</b>\n"]
+    lines = [f"📨 <b>Jami so'rovlar: {total} ta</b>\n"]
     for channel_id, count in counts:
         title = channels.get(channel_id, f"Kanal {channel_id}")
-        lines.append(f"📢 <b>{title}</b>\n👥 So’rovlar: <b>{count} ta</b>\n")
+        lines.append(f"📢 <b>{title}</b>\n👥 So'rovlar: <b>{count} ta</b>\n")
 
     markup = InlineKeyboardMarkup().add(
         InlineKeyboardButton("🔄 Yangilash", callback_data="refresh_join_requests")
@@ -364,14 +364,14 @@ async def refresh_join_requests(callback: types.CallbackQuery):
     channels = {ch[0]: ch[1] for ch in channel_db.get_all_channels()}
 
     if total == 0:
-        await callback.message.edit_text("📭 Hozircha hech kim so’rov yuborgan emas.")
+        await callback.message.edit_text("📭 Hozircha hech kim so'rov yuborgan emas.")
         await callback.answer()
         return
 
-    lines = [f"📨 <b>Jami so’rovlar: {total} ta</b>\n"]
+    lines = [f"📨 <b>Jami so'rovlar: {total} ta</b>\n"]
     for channel_id, count in counts:
         title = channels.get(channel_id, f"Kanal {channel_id}")
-        lines.append(f"📢 <b>{title}</b>\n👥 So’rovlar: <b>{count} ta</b>\n")
+        lines.append(f"📢 <b>{title}</b>\n👥 So'rovlar: <b>{count} ta</b>\n")
 
     markup = InlineKeyboardMarkup().add(
         InlineKeyboardButton("🔄 Yangilash", callback_data="refresh_join_requests")
@@ -383,23 +383,23 @@ async def refresh_join_requests(callback: types.CallbackQuery):
     await callback.answer("✅ Yangilandi!")
 
 
-# ── Kino qo’shish (ko’p qismli qo’llab-quvvatlash bilan) ─────────────────
+# ── Kino qo'shish (ko'p qismli qo'llab-quvvatlash bilan) ─────────────────
 
 def _more_parts_markup() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup().add(
-        InlineKeyboardButton("➕ Ha, qo’shaman", callback_data="kino_add_more"),
+        InlineKeyboardButton("➕ Ha, qo'shaman", callback_data="kino_add_more"),
         InlineKeyboardButton("✅ Tugatish", callback_data="kino_add_done"),
     )
 
 
-@dp.message_handler(text="➕ Kino Qo’shish")
+@dp.message_handler(text="➕ Kino Qo'shish")
 async def message_kino_add(message: types.Message, state: FSMContext):
     if not user_db.check_if_admin(message.from_user.id) and message.from_user.id not in ADMINS:
         await message.answer("🚫 Siz admin emassiz.")
         return
     await KinoAdd.kino_add.set()
     async with state.proxy() as data:
-        data["parts"] = []       # file_id lar ro’yxati
+        data["parts"] = []       # file_id lar ro'yxati
         data["caption"] = ""
     await message.answer(
         "🎬 <b>1-qism videoni yuboring:</b>",
@@ -413,7 +413,7 @@ async def cancel_kino_add(message: types.Message, state: FSMContext):
     await message.answer("Jarayon bekor qilindi.", reply_markup=admin_menu)
 
 
-# Video keldi — qismlar ro’yxatiga qo’shamiz
+# Video keldi — qismlar ro'yxatiga qo'shamiz
 @dp.message_handler(state=KinoAdd.kino_add, content_types=types.ContentType.VIDEO)
 async def kino_file_handler(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
@@ -425,13 +425,13 @@ async def kino_file_handler(message: types.Message, state: FSMContext):
     await KinoAdd.more_parts.set()
     await message.answer(
         f"✅ <b>{part_num}-qism qabul qilindi.</b>\n\n"
-        "Yana qism qo’shishni xohlaysizmi?",
+        "Yana qism qo'shishni xohlaysizmi?",
         parse_mode="HTML",
         reply_markup=_more_parts_markup()
     )
 
 
-# "Ha, qo’shaman" — keyingi qismni yuborish
+# "Ha, qo'shaman" — keyingi qismni yuborish
 @dp.callback_query_handler(lambda c: c.data == "kino_add_more", state=KinoAdd.more_parts)
 async def kino_add_more(callback: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
@@ -488,23 +488,23 @@ async def kino_code_handler(message: types.Message, state: FSMContext):
 
     await state.finish()
     await message.answer(
-        f"✅ <b>Kino qo’shildi!</b>\n"
+        f"✅ <b>Kino qo'shildi!</b>\n"
         f"📦 Qismlar soni: <b>{len(parts)} ta</b>\n"
         f"🔑 Kod: <code>{post_id}</code>",
         parse_mode="HTML",
         reply_markup=admin_menu
     )
 
-# ── Mavjud kinoga qism qo’shish ──────────────────────────────────────────
+# ── Mavjud kinoga qism qo'shish ──────────────────────────────────────────
 
-@dp.message_handler(text="🎬 Qism Qo’shish")
+@dp.message_handler(text="🎬 Qism Qo'shish")
 async def part_add_start(message: types.Message, state: FSMContext):
     if not user_db.check_if_admin(message.from_user.id) and message.from_user.id not in ADMINS:
         await message.answer("🚫 Siz admin emassiz.")
         return
     await KinoPartAdd.enter_code.set()
     await message.answer(
-        "🔑 Qaysi kinoga qism qo’shmoqchisiz?\n"
+        "🔑 Qaysi kinoga qism qo'shmoqchisiz?\n"
         "<b>Kino kodini yuboring:</b>",
         parse_mode="HTML"
     )
@@ -534,7 +534,7 @@ async def part_add_code(message: types.Message, state: FSMContext):
 
     await KinoPartAdd.enter_video.set()
     await message.answer(
-        f"🎬 <b>{kino[‘caption’]}</b>\n"
+        f"🎬 <b>{kino['caption']}</b>\n"
         f"📦 Hozirda: <b>{current_parts} ta qism</b>\n\n"
         f"🎥 <b>{current_parts + 1}-qism videoni yuboring:</b>",
         parse_mode="HTML"
@@ -553,8 +553,8 @@ async def part_add_video(message: types.Message, state: FSMContext):
 
     await KinoPartAdd.ask_more.set()
     await message.answer(
-        f"✅ <b>{new_part_num}-qism qo’shildi!</b>\n\n"
-        "Yana qism qo’shishni xohlaysizmi?",
+        f"✅ <b>{new_part_num}-qism qo'shildi!</b>\n\n"
+        "Yana qism qo'shishni xohlaysizmi?",
         parse_mode="HTML",
         reply_markup=_more_parts_markup()
     )
@@ -588,14 +588,14 @@ async def part_add_finish(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-# Kino o’chirish
-@dp.message_handler(text="🗑 Kino O’chirish")
+# Kino o'chirish
+@dp.message_handler(text="🗑 Kino O'chirish")
 async def movie_delete_handler(message: types.Message, state: FSMContext):
     if not user_db.check_if_admin(message.from_user.id) and message.from_user.id not in ADMINS:
         await message.answer("🚫 Siz admin emassiz.")
         return
     await KinoDelete.kino_code.set()
-    await message.answer("🗑 O‘chirmoqchi bo‘lgan kino kodini yuboring")
+    await message.answer("🗑 O'chirmoqchi bo'lgan kino kodini yuboring")
 
 @dp.message_handler(state=KinoDelete.kino_code, content_types=types.ContentType.TEXT)
 async def movie_kino_code(message: types.Message, state: FSMContext):
@@ -622,7 +622,7 @@ async def movie_kino_delete(message: types.Message, state: FSMContext):
         data['is_confirm'] = message.text
         if data['is_confirm'] == "✅Tasdiqlash":
             kino_db.delete_kino(data['post_id'])
-            await message.answer("✅ Kino muvaffaqiyatli o‘chirildi", reply_markup=ReplyKeyboardRemove())
+            await message.answer("✅ Kino muvaffaqiyatli o'chirildi", reply_markup=ReplyKeyboardRemove())
             await state.finish()
             await message.answer("Admin menyusiga qaytish uchun tugmani bosing:", reply_markup=admin_menu)
         elif data['is_confirm'] == "❌Bekor qilish":
@@ -768,8 +768,8 @@ async def back_to_main_menu(message: types.Message, state: FSMContext):
 # Bekor qilish handleri
 @dp.message_handler(
     lambda message: message.text in [
-        "➕ Kino Qo‘shish", "📊 Statistika", "📣 Reklama", "🗑 Kino O‘chirish",
-        "👤 Admin Qo‘shish", "🗑 Admin O‘chirish", "📋 Adminlar Ro‘yxati"
+        "➕ Kino Qo'shish", "📊 Statistika", "📣 Reklama", "🗑 Kino O'chirish",
+        "👤 Admin Qo'shish", "🗑 Admin O'chirish", "📋 Adminlar Ro'yxati"
     ], state="*")
 @dp.message_handler(lambda message: message.text.lower() in ["bekor qilish", "/cancel"], state="*")
 async def cancel_handler(message: types.Message, state: FSMContext):

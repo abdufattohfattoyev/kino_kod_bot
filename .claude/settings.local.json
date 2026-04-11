@@ -3,7 +3,8 @@
     "allow": [
       "Bash(ls D:/kino_kod_bot/*.py)",
       "Bash(python:*)",
-      "Bash(pip show:*)"
+      "Bash(pip show:*)",
+      "Bash(python3:*)"
     ]
   }
 }
