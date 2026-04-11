@@ -121,8 +121,10 @@ class Advertisement:
         except Exception as e:
             logger.error(f"Status xabar yuborishda xatolik: {e}")
 
-        UPDATE_EVERY = 10   # har N foydalanuvchidan keyin yangilash
-        DELAY        = 0.05  # har xabar orasidagi kutish (20 msg/sec)
+        UPDATE_EVERY  = 10    # har N foydalanuvchidan keyin yangilash
+        DELAY         = 0.05  # har xabar orasidagi kutish (20 msg/sec)
+        CHUNK_SIZE    = 1000  # har N xabardan keyin dam olish
+        CHUNK_PAUSE   = 30    # dam olish vaqti (soniya)
 
         for i, user in enumerate(users):
             # To'xtatish
@@ -146,6 +148,14 @@ class Advertisement:
             # Status yangilash
             if (i + 1) % UPDATE_EVERY == 0:
                 await self._update_status("Davom etmoqda ▶️")
+
+            # Har CHUNK_SIZE xabardan keyin dam olish (Telegram limit uchun)
+            if (i + 1) % CHUNK_SIZE == 0 and (i + 1) < self.total_users:
+                for remaining in range(CHUNK_PAUSE, 0, -1):
+                    if not self.running:
+                        break
+                    await self._update_status(f"⏳ Telegram limit: {remaining}s dam olmoqda...")
+                    await asyncio.sleep(1)
 
         self.running = False
         self.paused  = False
