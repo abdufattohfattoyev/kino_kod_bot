@@ -123,8 +123,8 @@ class Advertisement:
 
         UPDATE_EVERY  = 10    # har N foydalanuvchidan keyin yangilash
         DELAY         = 0.05  # har xabar orasidagi kutish (20 msg/sec)
-        CHUNK_SIZE    = 1000  # har N xabardan keyin dam olish
-        CHUNK_PAUSE   = 30    # dam olish vaqti (soniya)
+        CHUNK_SIZE    = 300   # har N xabardan keyin dam olish
+        CHUNK_PAUSE   = 300   # dam olish vaqti (soniya) = 5 daqiqa
 
         for i, user in enumerate(users):
             # To'xtatish
