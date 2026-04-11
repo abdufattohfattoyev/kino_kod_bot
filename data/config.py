@@ -15,6 +15,7 @@ BOT_TOKEN = env.str("BOT_TOKEN")
 ADMINS = env.list("ADMINS", subcast=int, default=[])
 IP = env.str("ip", default="localhost")
 
+
 def update_env_admins(admins: list):
     """ADMINS ro'yxatini .env faylida yangilash (agar fayl mavjud bo'lsa)."""
     env_path = ".env"
@@ -39,6 +40,7 @@ def update_env_admins(admins: list):
     except Exception as e:
         logger.error(f".env yangilashda xatolik: {e}")
         raise
+
 
 logger.info(f"ADMINS: {ADMINS}")
 logger.info(f"IP: {IP}")

@@ -16,6 +16,16 @@ class KinoDatabase(Database):
                 );
               """
         self.execute(sql, commit=True)
+        # Ko'p qismli kinolar jadvali
+        self.execute("""
+            CREATE TABLE IF NOT EXISTS KinoParts(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                post_id BIGINT NOT NULL,
+                part_number INTEGER NOT NULL,
+                file_id VARCHAR(2000) NOT NULL,
+                UNIQUE(post_id, part_number)
+            );
+        """, commit=True)
 
     def add_kino(self, post_id: int, file_id: str, caption: str):
         # Bazada kino mavjudligini tekshirish
@@ -58,3 +68,72 @@ class KinoDatabase(Database):
         sql = "SELECT count_download FROM Kino WHERE post_id = ?"
         result = self.execute(sql, parameters=(post_id,), fetchone=True)
         return result[0] if result else 0
+
+    # ── Ko'p qismli kinolar ───────────────────────────────────────────────
+
+    def add_parts(self, post_id: int, file_ids: list):
+        """Kinoning barcha qismlarini saqlash (yangi kino uchun, 1 dan boshlanadi)."""
+        for i, file_id in enumerate(file_ids, start=1):
+            self.execute(
+                "INSERT OR IGNORE INTO KinoParts(post_id, part_number, file_id) VALUES(?,?,?)",
+                parameters=(post_id, i, file_id), commit=True
+            )
+
+    def add_next_part(self, post_id: int, file_id: str) -> int:
+        """Mavjud kinoga keyingi qismni qo'shadi. Yangi qism raqamini qaytaradi."""
+        result = self.execute(
+            "SELECT COALESCE(MAX(part_number), 0) FROM KinoParts WHERE post_id=?",
+            parameters=(post_id,), fetchone=True
+        )
+        next_num = (result[0] if result else 0) + 1
+        self.execute(
+            "INSERT OR IGNORE INTO KinoParts(post_id, part_number, file_id) VALUES(?,?,?)",
+            parameters=(post_id, next_num, file_id), commit=True
+        )
+        return next_num
+
+    def get_parts(self, post_id: int) -> list:
+        """Kinoning barcha qismlarini tartib bilan olish. [(part_number, file_id), ...]"""
+        result = self.execute(
+            "SELECT part_number, file_id FROM KinoParts WHERE post_id=? ORDER BY part_number",
+            parameters=(post_id,), fetchall=True
+        )
+        return result or []
+
+    def delete_parts(self, post_id: int):
+        """Kinoning barcha qismlarini o'chirish."""
+        self.execute(
+            "DELETE FROM KinoParts WHERE post_id=?",
+            parameters=(post_id,), commit=True
+        )
+
+    def count_parts(self, post_id: int) -> int:
+        """Kino nechta qismdan iboratligini qaytaradi."""
+        result = self.execute(
+            "SELECT COUNT(*) FROM KinoParts WHERE post_id=?",
+            parameters=(post_id,), fetchone=True
+        )
+        return result[0] if result else 0
+
+    # ─────────────────────────────────────────────────────────────────────
+
+    def get_top_kinos(self, limit: int = 10):
+        """Eng ko'p yuklab olingan kinolar. [(post_id, caption, count_download), ...]"""
+        sql = """
+            SELECT post_id, caption, count_download
+            FROM Kino
+            ORDER BY count_download DESC
+            LIMIT ?
+        """
+        return self.execute(sql, parameters=(limit,), fetchall=True) or []
+
+    def search_by_caption(self, query: str, limit: int = 8):
+        """Kino nomi bo'yicha qidirish. [(post_id, caption, count_download), ...]"""
+        sql = """
+            SELECT post_id, caption, count_download
+            FROM Kino
+            WHERE caption LIKE ?
+            ORDER BY count_download DESC
+            LIMIT ?
+        """
+        return self.execute(sql, parameters=(f"%{query}%", limit), fetchall=True) or []

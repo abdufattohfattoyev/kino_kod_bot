@@ -4,7 +4,7 @@ from aiogram.dispatcher.filters import CommandStart
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from data.config import ADMINS
 from keyboards.default.kanal_button import kanal_keyboard
-from loader import dp, bot, user_db, channel_db
+from loader import dp, bot, user_db, channel_db, kino_db, join_request_db
 import asyncio
 import logging
 
@@ -15,10 +15,13 @@ logger = logging.getLogger(__name__)
 async def check_subscription(user_id: int, channel_id: int) -> bool:
     try:
         member = await bot.get_chat_member(chat_id=channel_id, user_id=user_id)
-        return member.status in ["member", "administrator", "creator"]
+        if member.status in ["member", "administrator", "creator"]:
+            return True
     except Exception as e:
         logger.error(f"Kanal {channel_id} da {user_id} tekshirishda xatolik: {e}")
-        return False
+
+    # Join request yuborgan bo'lsa ham obuna hisoblanadi
+    return join_request_db.has_request(user_id, channel_id)
 
 
 # Barcha kanallarga obuna tekshiruvi
@@ -31,12 +34,14 @@ async def is_subscribed_to_all_channels(user_id: int) -> bool:
             return False
     return True
 
+
 # Obuna bo'lmagan kanallar ro'yxati
 async def get_unsubscribed_channels(user_id: int) -> list:
     channels = channel_db.get_all_channels()
     if not channels:
         return []  # Agar kanallar bo‘sh bo‘lsa, bo‘sh ro‘yxat qaytaramiz
     return [(link, title) for channel_id, title, link in channels if not await check_subscription(user_id, channel_id)]
+
 
 # Inline klaviatura
 def get_subscription_keyboard(unsubscribed_channels):
@@ -58,21 +63,32 @@ def get_remaining_channels_message(remaining_count):
     else:
         return f"📌 Hali {remaining_count} ta kanalga obuna bo‘lishingiz kerak!"
 
+
 # Avtomatik tekshirish va yangilash funksiyasi
 async def auto_check_subscription(user_id: int, message: types.Message):
+    from aiogram.utils.exceptions import MessageNotModified, MessageToEditNotFound, BadRequest
     while True:
-        await asyncio.sleep(5)  # Har 5 soniyada tekshirish
-        if await is_subscribed_to_all_channels(user_id):
-            new_text = f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring."
-            if message.text != new_text:
-                await message.edit_text(new_text, parse_mode="HTML")
+        await asyncio.sleep(5)
+        try:
+            if await is_subscribed_to_all_channels(user_id):
+                new_text = f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring."
+                try:
+                    await message.edit_text(new_text, parse_mode="HTML")
+                except (MessageNotModified, MessageToEditNotFound, BadRequest):
+                    pass
+                break
+            else:
+                unsubscribed = await get_unsubscribed_channels(user_id)
+                new_text = "⚠️ <b>Siz hali barcha kanallarga obuna bo'lmadingiz!</b>\n\n👇 Quyidagilarga obuna bo'ling:"
+                new_reply_markup = get_subscription_keyboard(unsubscribed)
+                try:
+                    await message.edit_text(new_text, reply_markup=new_reply_markup, parse_mode="HTML")
+                except (MessageNotModified, MessageToEditNotFound, BadRequest):
+                    pass
+        except Exception as e:
+            logger.error(f"auto_check_subscription xatolik: {e}")
             break
-        else:
-            unsubscribed = await get_unsubscribed_channels(user_id)
-            new_text = "⚠️ <b>Siz hali barcha kanallarga obuna bo'lmadingiz!</b>\n\n👇 Quyidagilarga obuna bo'ling:"
-            new_reply_markup = get_subscription_keyboard(unsubscribed)
-            if message.text != new_text or message.reply_markup != new_reply_markup:
-                await message.edit_text(new_text, reply_markup=new_reply_markup, parse_mode="HTML")
+
 
 # Foydalanuvchini ro'yxatdan o'tkazish uchun alohida funksiya
 async def register_user(user_id: int, username: str, context: str = "unknown") -> bool:
@@ -114,6 +130,7 @@ async def register_user(user_id: int, username: str, context: str = "unknown") -
     except Exception as e:
         logger.error(f"Ro'yxatdan o'tkazishda xatolik (Context: {context}): {e}")
         raise
+
 
 # /start komandasi
 @dp.message_handler(CommandStart())
@@ -167,9 +184,12 @@ async def start_command(message: types.Message):
                 logger.error(f"Obuna xabarini yuborishda xatolik: {e}")
                 await message.answer("Xatolik yuz berdi. Qayta urinib ko'ring.")
 
+
 # Obuna tekshirish callback
 @dp.callback_query_handler(lambda c: c.data == "check_subscription")
 async def check_subscription_callback(callback: types.CallbackQuery):
+    from handlers.users.pending import pending_messages
+
     user_id = callback.from_user.id
     username = callback.from_user.username or callback.from_user.full_name
 
@@ -178,39 +198,88 @@ async def check_subscription_callback(callback: types.CallbackQuery):
         await callback.answer()
         return
 
-    # Ikkinchi ro'yxatdan o'tkazish imkoniyati (xabar yuborilmaydi)
+    # Ikkinchi ro’yxatdan o’tkazish imkoniyati (xabar yuborilmaydi)
     try:
         await register_user(user_id, username, context="check_subscription")
     except Exception as e:
-        await callback.message.edit_text("⚠️ Ro‘yxatdan o‘tishda xatolik yuz berdi. Qayta urinib ko‘ring.", parse_mode="HTML")
+        await callback.message.edit_text("⚠️ Ro’yxatdan o’tishda xatolik yuz berdi. Qayta urinib ko’ring.", parse_mode="HTML")
         await callback.answer()
         return
 
+    from aiogram.utils.exceptions import MessageNotModified, BadRequest
+
     # Obuna tekshiruvi
     if await is_subscribed_to_all_channels(user_id):
-        await callback.message.edit_text(
-            f"👋 Assalomu Alaykum, {callback.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
-            parse_mode="HTML"
-        )
+        try:
+            await callback.message.edit_text(
+                f"👋 Assalomu Alaykum, {callback.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
+                parse_mode="HTML"
+            )
+        except (MessageNotModified, BadRequest):
+            pass
         await callback.answer()
+
+        # Kutayotgan forward xabar bor bo’lsa qayta ishlaymiz
+        pending = pending_messages.pop(user_id, None)
+        if pending and pending.get("is_forward"):
+            await _process_pending_forward(user_id, pending)
     else:
         unsubscribed = await get_unsubscribed_channels(user_id)
-        text = "⚠️ <b>Hali barcha kanallarga obuna bo‘lmadingiz!</b>\n\n👇 Quyidagilarga obuna bo'ling:"
+        text = "⚠️ <b>Hali barcha kanallarga obuna bo’lmadingiz!</b>\n\n👇 Quyidagilarga obuna bo’ling:"
         markup = get_subscription_keyboard(unsubscribed)
-        await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+        try:
+            await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+        except (MessageNotModified, BadRequest):
+            pass
         await callback.answer("Obunani tekshiring!")
+
+
+async def _process_pending_forward(user_id: int, pending: dict):
+    """Obuna bo’lgandan keyin kutayotgan forwardni qayta ishlaydi."""
+    forward_chat_id = pending.get("forward_from_chat_id")
+    forward_msg_id = pending.get("forward_from_message_id")
+    text = pending.get("text")
+
+    # Agar original kanal va xabar ID mavjud bo’lsa - to’g’ridan-to’g’ri forward qilamiz
+    if forward_chat_id and forward_msg_id:
+        try:
+            await bot.forward_message(
+                chat_id=user_id,
+                from_chat_id=forward_chat_id,
+                message_id=forward_msg_id
+            )
+            return
+        except Exception:
+            pass  # Forward qilib bo’lmasa, matn orqali urinamiz
+
+    # Matn raqam bo’lsa - kino qidiruvini ishga tushiramiz
+    if text and text.strip().isdigit():
+        from handlers.users.kino_handler import _send_kino
+        try:
+            await _send_kino(user_id, int(text.strip()))
+        except Exception as e:
+            logger.error(f"Pending forward kino yuborishda xatolik: {e}")
+    elif text:
+        # Boshqa matnli xabar bo’lsa - shunchaki yuborib beramiz
+        await bot.send_message(
+            chat_id=user_id,
+            text=f"📨 <b>Saqlangan xabaringiz:</b>\n\n{text}",
+            parse_mode="HTML"
+        )
+
 
 # "📽 Barcha kinolar" tugmasi
 @dp.message_handler(lambda message: message.text == "📽 Barcha kinolar")
 async def send_channel_link(message: types.Message):
     user_id = message.from_user.id
-    if not user_db.select_user(user_id):
-        await message.answer("⚠️ Avval ro‘yxatdan o‘ting! /start buyrug‘ini yuboring.")
+    if user_id not in ADMINS and not user_db.select_user(user_id):
+        await message.answer("⚠️ Avval ro’yxatdan o’ting! /start buyrug’ini yuboring.")
         return
     await message.answer(
         "<b>🎬 Yangi kinolar:</b>\n📌 https://t.me/Kino_mania_2024",
         parse_mode="HTML"
     )
+
 
 # Shaxsiy kanal uchun no_action callback
 @dp.callback_query_handler(lambda c: c.data == "no_action")

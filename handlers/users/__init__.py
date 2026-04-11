@@ -4,3 +4,4 @@ from . import kino_handler
 from . import channel_add
 from . import middleware
 from . import reklama
+from . import join_request

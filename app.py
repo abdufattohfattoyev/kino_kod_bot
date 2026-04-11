@@ -32,4 +32,14 @@ async def on_startup(dispatcher):
 
 
 if __name__ == '__main__':
-    executor.start_polling(dp, on_startup=on_startup)
+    executor.start_polling(
+        dp,
+        on_startup=on_startup,
+        allowed_updates=[
+            "message",
+            "callback_query",
+            "chat_join_request",
+            "chat_member",
+            "my_chat_member",
+        ]
+    )

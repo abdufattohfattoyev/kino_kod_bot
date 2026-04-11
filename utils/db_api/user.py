@@ -171,3 +171,27 @@ class UserDatabase(Database):
         """Barcha adminlarni olish."""
         sql = "SELECT telegram_id, username FROM Users WHERE is_admin = 1"
         return self.execute(sql, fetchall=True)
+
+    def get_daily_growth(self, days: int = 7):
+        """So'nggi N kun uchun kunlik yangi foydalanuvchilar.
+        [(date_str, count), ...] — eskidan yangiga tartibda."""
+        sql = """
+            SELECT DATE(created_at) as day, COUNT(*) as cnt
+            FROM Users
+            WHERE created_at >= datetime('now', ?)
+            GROUP BY day
+            ORDER BY day ASC
+        """
+        result = self.execute(sql, parameters=(f"-{days} days",), fetchall=True)
+        return result or []
+
+    def count_passive_users(self, days: int = 30):
+        """So'nggi N kunda faol bo'lmagan foydalanuvchilar soni."""
+        now = self._get_current_time()
+        cutoff = (now - timedelta(days=days)).isoformat()
+        sql = """
+            SELECT COUNT(*) FROM Users
+            WHERE last_active IS NULL OR last_active < ?
+        """
+        result = self.execute(sql, parameters=(cutoff,), fetchone=True)
+        return result[0] if result else 0
