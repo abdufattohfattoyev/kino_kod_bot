@@ -127,6 +127,27 @@ class KinoDatabase(Database):
         """
         return self.execute(sql, parameters=(limit,), fetchall=True) or []
 
+    def search_for_inline(self, query: str, limit: int = 20):
+        """Inline qidirish uchun. [(post_id, file_id, caption), ...]"""
+        sql = """
+            SELECT post_id, file_id, caption
+            FROM Kino
+            WHERE caption LIKE ?
+            ORDER BY count_download DESC
+            LIMIT ?
+        """
+        return self.execute(sql, parameters=(f"%{query}%", limit), fetchall=True) or []
+
+    def get_top_inline(self, limit: int = 20):
+        """Eng mashhur kinolar inline uchun (query bo'sh bo'lsa). [(post_id, file_id, caption), ...]"""
+        sql = """
+            SELECT post_id, file_id, caption
+            FROM Kino
+            ORDER BY count_download DESC
+            LIMIT ?
+        """
+        return self.execute(sql, parameters=(limit,), fetchall=True) or []
+
     def search_by_caption(self, query: str, limit: int = 8):
         """Kino nomi bo'yicha qidirish. [(post_id, caption, count_download), ...]"""
         sql = """

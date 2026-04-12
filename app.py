@@ -1,6 +1,7 @@
 from aiogram import executor
 
 from handlers.users.middleware import SubscriptionMiddleware
+from handlers.users.inline_search import load_bot_username
 from loader import dp, user_db, kino_db
 import middlewares, filters, handlers
 from utils.notify_admins import on_startup_notify
@@ -29,6 +30,7 @@ async def on_startup(dispatcher):
     except Exception as err:
         print(f"Adminlarni yuklashda xatolik: {err}")
 
+    await load_bot_username()
     await on_startup_notify(dispatcher)
 
 
@@ -42,5 +44,6 @@ if __name__ == '__main__':
             "chat_join_request",
             "chat_member",
             "my_chat_member",
+            "inline_query",
         ]
     )
