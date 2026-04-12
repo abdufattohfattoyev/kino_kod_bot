@@ -37,13 +37,11 @@ def get_env(key):
                 return line.split('=', 1)[1].strip()
     return None
 
-BOT_TOKEN = get_env('BOT_TOKEN')
-
 # my.telegram.org dan oling:
 API_ID   = 0        # ← O'zgartiring
 API_HASH = ""       # ← O'zgartiring
 
-CHANNEL  = "@KINO_MANIA_2024"   # ← Kanal username (yoki -100xxxx ID)
+CHANNEL  = "@KINO_MANIA_2026"   # ← Kanal username
 
 # ── O'zgartirish qoidalari ────────────────────────────────────────────────────
 
@@ -85,15 +83,16 @@ async def main():
         print("   https://my.telegram.org → API development tools")
         return
 
-    print(f"🤖 Bot token: {BOT_TOKEN[:20]}...")
+    print(f"👤 User account bilan kirilmoqda...")
     print(f"📢 Kanal: {CHANNEL}")
     print("─" * 40)
 
+    # USER session (bot emas) — telefon raqam bilan kiradi
     app = Client(
         "fix_session",
         api_id=API_ID,
         api_hash=API_HASH,
-        bot_token=BOT_TOKEN
+        # bot_token EMAS — user account ishlatiladi
     )
 
     async with app:
