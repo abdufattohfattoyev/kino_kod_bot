@@ -34,6 +34,13 @@ async def inline_search_handler(query: types.InlineQuery):
             title = caption or f"Kino #{post_id}"
             deep_link = f"https://t.me/{username}?start={post_id}"
 
+            import urllib.parse
+            share_url = (
+                f"https://t.me/share/url?"
+                f"url={urllib.parse.quote(deep_link, safe='')}"
+                f"&text={urllib.parse.quote('🎬 ' + title, safe='')}"
+            )
+
             result = types.InlineQueryResultCachedVideo(
                 id=str(post_id),
                 video_file_id=file_id,
@@ -41,15 +48,9 @@ async def inline_search_handler(query: types.InlineQuery):
                 caption=f"🎬 <b>{title}</b>\n\n"
                         f"👇 Kinoni ko'rish uchun tugmani bosing:",
                 parse_mode="HTML",
-                reply_markup=types.InlineKeyboardMarkup().add(
-                    types.InlineKeyboardButton(
-                        "▶️ Kinoni ko'rish",
-                        url=deep_link
-                    ),
-                    types.InlineKeyboardButton(
-                        "📤 Ulashish",
-                        switch_inline_query=title
-                    )
+                reply_markup=types.InlineKeyboardMarkup(row_width=2).add(
+                    types.InlineKeyboardButton("▶️ Kinoni ko'rish", url=deep_link),
+                    types.InlineKeyboardButton("📤 Ulashish", url=share_url)
                 )
             )
             results.append(result)

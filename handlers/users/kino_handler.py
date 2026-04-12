@@ -9,6 +9,7 @@ from data.config import ADMINS, update_env_admins
 from handlers.users.middleware import SubscriptionMiddleware
 from handlers.users.reklama import ReklamaTuriState
 from handlers.users.start import is_subscribed_to_all_channels, get_unsubscribed_channels, get_subscription_keyboard
+import urllib.parse
 from loader import dp, bot, kino_db, user_db, channel_db, join_request_db, settings_db
 from keyboards.default.button_kino import menu_movie
 from keyboards.default.admin_menu import admin_menu
@@ -649,6 +650,18 @@ async def _send_kino(user_id: int, post_id: int, notify_not_found=True) -> bool:
     parts = kino_db.get_parts(post_id)
     protect = settings_db.get_bool("protect_content", default=False)
 
+    from handlers.users.inline_search import BOT_USERNAME
+    username = BOT_USERNAME or "bot"
+    deep_link = f"https://t.me/{username}?start={post_id}"
+    share_url = (
+        f"https://t.me/share/url?"
+        f"url={urllib.parse.quote(deep_link, safe='')}"
+        f"&text={urllib.parse.quote('🎬 ' + str(data['caption']), safe='')}"
+    )
+    share_markup = InlineKeyboardMarkup().add(
+        InlineKeyboardButton("📤 Do'stlarga ulashish", url=share_url)
+    )
+
     caption_base = (
         "<b>" + str(data["caption"]) + "</b>\n\n"
         "📥 <b>Kino Yuklash Soni:</b> " + str(data["count_download"]) + "\n\n"
@@ -661,21 +674,25 @@ async def _send_kino(user_id: int, post_id: int, notify_not_found=True) -> bool:
             video=data["file_id"],
             caption=caption_base,
             parse_mode="HTML",
-            protect_content=protect
+            protect_content=protect,
+            reply_markup=None if protect else share_markup
         )
     else:
         total = len(parts)
         for part_num, file_id in parts:
             if part_num == 1:
                 cap = caption_base + f"\n\n🎬 <b>Qism {part_num}/{total}</b>"
+                markup = None if protect else share_markup
             else:
                 cap = f"🎬 <b>{data['caption']} — Qism {part_num}/{total}</b>"
+                markup = None
             await bot.send_video(
                 chat_id=user_id,
                 video=file_id,
                 caption=cap,
                 parse_mode="HTML",
-                protect_content=protect
+                protect_content=protect,
+                reply_markup=markup
             )
 
     kino_db.update_download_count(post_id)
