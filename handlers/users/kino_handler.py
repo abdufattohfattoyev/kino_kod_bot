@@ -652,7 +652,7 @@ async def _send_kino(user_id: int, post_id: int, notify_not_found=True) -> bool:
     caption_base = (
         "<b>" + str(data["caption"]) + "</b>\n\n"
         "📥 <b>Kino Yuklash Soni:</b> " + str(data["count_download"]) + "\n\n"
-        "📌 <b>Barcha kinolar:</b> <b>T.me/Kino_Mania_2024</b>"
+        "📌 <b>Barcha kinolar:</b> <b>T.me/Kino_Mania_2026</b>"
     )
 
     if len(parts) <= 1:
