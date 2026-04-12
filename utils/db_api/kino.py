@@ -60,6 +60,18 @@ class KinoDatabase(Database):
         sql = "SELECT file_id, caption FROM Kino WHERE caption LIKE ?"
         return self.execute(sql, (f"%{caption}%",), fetchall=True)
 
+    def update_caption(self, post_id: int, new_caption: str):
+        """Kino sarlavhasini yangilash."""
+        sql = "UPDATE Kino SET caption = ?, updated_at = ? WHERE post_id = ?"
+        from datetime import datetime
+        self.execute(sql, parameters=(new_caption, datetime.now().isoformat(), post_id), commit=True)
+
+    def update_file_id(self, post_id: int, new_file_id: str):
+        """Kino asosiy faylini yangilash."""
+        sql = "UPDATE Kino SET file_id = ?, updated_at = ? WHERE post_id = ?"
+        from datetime import datetime
+        self.execute(sql, parameters=(new_file_id, datetime.now().isoformat(), post_id), commit=True)
+
     def update_download_count(self, post_id: int):
         sql = "UPDATE Kino SET count_download = count_download + 1 WHERE post_id = ?"
         self.execute(sql, parameters=(post_id,), commit=True)

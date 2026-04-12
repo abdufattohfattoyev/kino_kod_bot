@@ -1,7 +1,9 @@
 from aiogram import executor
 
+import asyncio
 from handlers.users.middleware import SubscriptionMiddleware
 from handlers.users.inline_search import load_bot_username
+from handlers.users.backup import auto_backup_loop
 from loader import dp, user_db, kino_db
 import middlewares, filters, handlers
 from utils.notify_admins import on_startup_notify
@@ -17,6 +19,7 @@ async def on_startup(dispatcher):
     try:
         user_db.create_table_users()
         user_db.add_is_admin_column()
+        user_db.add_is_blocked_column()
         kino_db.create_table_kino()
     except Exception as err:
         print(err)
@@ -32,6 +35,7 @@ async def on_startup(dispatcher):
 
     await load_bot_username()
     await on_startup_notify(dispatcher)
+    asyncio.create_task(auto_backup_loop())
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ from aiogram.utils.exceptions import MessageNotModified
 from data.config import ADMINS
 from handlers.users.start import get_subscription_keyboard, is_subscribed_to_all_channels, get_unsubscribed_channels
 from handlers.users.pending import pending_messages
-from loader import bot
+from loader import bot, user_db
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,24 @@ class SubscriptionMiddleware(BaseMiddleware):
         # Adminlar uchun tekshiruv yo'q
         if isinstance(ADMINS, list) and user_id in ADMINS:
             return
+
+        # Bloklangan foydalanuvchi
+        try:
+            if user_db.is_user_blocked(user_id):
+                if update.message:
+                    try:
+                        await bot.send_message(
+                            user_id,
+                            "🚫 <b>Siz botdan foydalanish huquqingiz bloklangan.</b>",
+                            parse_mode="HTML"
+                        )
+                    except Exception:
+                        pass
+                raise CancelHandler()
+        except CancelHandler:
+            raise
+        except Exception as e:
+            logger.error(f"Bloklash tekshirishda xatolik (user_id={user_id}): {e}")
 
         # /start va obuna callback lari bloklanmasin
         if update.message:

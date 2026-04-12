@@ -147,6 +147,36 @@ class UserDatabase(Database):
         except Exception as e:
             logger.warning(f"is_admin column might already exist: {e}")
 
+    def add_is_blocked_column(self):
+        """Jadvalga is_blocked ustunini qo'shish."""
+        try:
+            sql = "ALTER TABLE Users ADD COLUMN is_blocked BOOLEAN NOT NULL DEFAULT 0"
+            self.execute(sql, commit=True)
+            logger.info("is_blocked column added successfully.")
+        except Exception as e:
+            logger.warning(f"is_blocked column might already exist: {e}")
+
+    def block_user(self, telegram_id: int):
+        """Foydalanuvchini bloklash."""
+        sql = "UPDATE Users SET is_blocked = 1 WHERE telegram_id = ?"
+        self.execute(sql, parameters=(telegram_id,), commit=True)
+
+    def unblock_user(self, telegram_id: int):
+        """Foydalanuvchi blokini ochish."""
+        sql = "UPDATE Users SET is_blocked = 0 WHERE telegram_id = ?"
+        self.execute(sql, parameters=(telegram_id,), commit=True)
+
+    def is_user_blocked(self, telegram_id: int) -> bool:
+        """Foydalanuvchi bloklangan yoki yo'qligini tekshirish."""
+        sql = "SELECT is_blocked FROM Users WHERE telegram_id = ?"
+        result = self.execute(sql, parameters=(telegram_id,), fetchone=True)
+        return bool(result) and result[0] == 1
+
+    def get_blocked_users(self):
+        """Bloklangan foydalanuvchilar ro'yxati."""
+        sql = "SELECT telegram_id, username FROM Users WHERE is_blocked = 1"
+        return self.execute(sql, fetchall=True) or []
+
     def set_admin(self, telegram_id: int):
         """Foydalanuvchini admin sifatida belgilash."""
         try:

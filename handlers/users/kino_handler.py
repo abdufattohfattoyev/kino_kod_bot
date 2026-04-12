@@ -711,6 +711,9 @@ _KNOWN_BUTTONS = {
     "📣 Reklama", "🗑 Kino O'chirish", "👤 Admin Qo'shish",
     "🗑 Admin O'chirish", "📋 Adminlar Ro'yxati", "📨 So'rovlar",
     "📢 Kanallar", "🔙 Admin menyu", "✅Tasdiqlash", "❌Bekor qilish",
+    "✏️ Kino Tahrirlash", "💾 Backup",
+    "🚫 Bloklash", "✅ Blokdan Chiqarish", "📋 Bloklangan Ro'yxat",
+    "🎬 Qism Qo'shish",
 }
 
 
