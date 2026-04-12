@@ -15,6 +15,7 @@ import time
 import re
 import os
 import requests
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ── Sozlamalar ────────────────────────────────────────────────────────────────
@@ -31,9 +32,11 @@ BOT_TOKEN = get_env('BOT_TOKEN')
 ADMIN_ID  = int(get_env('ADMINS').split(',')[0])
 CHANNEL   = "@KINO_MANIA_2026"
 MAX_MSG_ID  = 10000   # Kanalda nechta post bo'lsa shundan ko'p qilib qo'ying
-WORKERS     = 8       # Parallel ishchi sonи (ko'paytirsa tezroq, lekin flood bo'lishi mumkin)
+WORKERS     = 3       # Parallel ishchi soni
+FORWARD_DELAY = 0.8  # Forward orasidagi kutish (soniya) — FloodWait dan qochish uchun
 
-BASE = f"https://api.telegram.org/bot{BOT_TOKEN}"
+BASE          = f"https://api.telegram.org/bot{BOT_TOKEN}"
+_forward_lock = threading.Lock()   # Bir vaqtda faqat 1 ta forward
 
 # ── Matnni tuzatish ───────────────────────────────────────────────────────────
 
@@ -57,12 +60,26 @@ def fix_text(text: str):
 # ── Bot API chaqiruvlari ───────────────────────────────────────────────────────
 
 def forward_msg(msg_id):
-    r = requests.post(f"{BASE}/forwardMessage", json={
-        "chat_id": ADMIN_ID,
-        "from_chat_id": CHANNEL,
-        "message_id": msg_id
-    }, timeout=10)
-    return r.json()
+    with _forward_lock:
+        time.sleep(FORWARD_DELAY)
+        r = requests.post(f"{BASE}/forwardMessage", json={
+            "chat_id": ADMIN_ID,
+            "from_chat_id": CHANNEL,
+            "message_id": msg_id
+        }, timeout=10)
+        data = r.json()
+        # FloodWait bo'lsa kutamiz
+        if not data.get('ok') and 'retry after' in data.get('description', '').lower():
+            wait = int(re.search(r'\d+', data['description']).group()) + 2
+            print(f"⏳ Forward FloodWait {wait}s...")
+            time.sleep(wait)
+            r = requests.post(f"{BASE}/forwardMessage", json={
+                "chat_id": ADMIN_ID,
+                "from_chat_id": CHANNEL,
+                "message_id": msg_id
+            }, timeout=10)
+            data = r.json()
+        return data
 
 def delete_msg(msg_id):
     requests.post(f"{BASE}/deleteMessage", json={
