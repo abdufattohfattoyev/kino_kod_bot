@@ -294,14 +294,46 @@ async def _process_pending_forward(user_id: int, pending: dict):
 # "📽 Barcha kinolar" tugmasi
 @dp.message_handler(lambda message: message.text == "📽 Barcha kinolar")
 async def send_channel_link(message: types.Message):
-    user_id = message.from_user.id
-    if user_id not in ADMINS and not user_db.select_user(user_id):
-        await message.answer("⚠️ Avval ro’yxatdan o’ting! /start buyrug’ini yuboring.")
-        return
     await message.answer(
         "<b>🎬 Yangi kinolar:</b>\n📌 https://t.me/Kino_mania_2026",
         parse_mode="HTML"
     )
+
+
+# "🎲 Tasodifiy Kino" tugmasi
+@dp.message_handler(text="🎲 Tasodifiy Kino")
+async def random_kino_handler(message: types.Message):
+    kino = kino_db.get_random_kino()
+    if not kino:
+        await message.answer("📭 Hozircha kinolar bazasi bo’sh.")
+        return
+    await message.answer("🎲 <b>Tasodifiy kino yuborilmoqda...</b>", parse_mode="HTML")
+    from handlers.users.kino_handler import _send_kino
+    await _send_kino(message.from_user.id, kino["post_id"])
+
+
+# "🏆 Top 10 Kino" tugmasi
+@dp.message_handler(text="🏆 Top 10 Kino")
+async def top10_kino_handler(message: types.Message):
+    tops = kino_db.get_top_kinos(10)
+    if not tops:
+        await message.answer("📭 Hozircha kinolar bazasi bo’sh.")
+        return
+
+    lines = ["🏆 <b>Eng ko’p yuklab olingan 10 ta kino:</b>\n"]
+    medals = {1: "🥇", 2: "🥈", 3: "🥉"}
+    markup = types.InlineKeyboardMarkup(row_width=1)
+
+    for i, (post_id, caption, count) in enumerate(tops, 1):
+        medal = medals.get(i, f"{i}.")
+        short = (caption[:35] + "…") if caption and len(caption) > 35 else (caption or f"#{post_id}")
+        lines.append(f"{medal} <b>{short}</b>  —  📥 {count} marta")
+        markup.add(types.InlineKeyboardButton(
+            f"{medal} {short}",
+            callback_data=f"kino_{post_id}"
+        ))
+
+    await message.answer("\n".join(lines), parse_mode="HTML", reply_markup=markup)
 
 
 # Shaxsiy kanal uchun no_action callback

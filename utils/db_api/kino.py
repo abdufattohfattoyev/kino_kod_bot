@@ -129,6 +129,14 @@ class KinoDatabase(Database):
 
     # ─────────────────────────────────────────────────────────────────────
 
+    def get_random_kino(self):
+        """Tasodifiy bir kinoni qaytaradi. (post_id, file_id, caption, count_download)"""
+        sql = "SELECT post_id, file_id, caption, count_download FROM Kino ORDER BY RANDOM() LIMIT 1"
+        result = self.execute(sql, fetchone=True)
+        if result:
+            return {"post_id": result[0], "file_id": result[1], "caption": result[2], "count_download": result[3]}
+        return None
+
     def get_top_kinos(self, limit: int = 10):
         """Eng ko'p yuklab olingan kinolar. [(post_id, caption, count_download), ...]"""
         sql = """

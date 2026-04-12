@@ -785,6 +785,7 @@ _KNOWN_BUTTONS = {
     "✏️ Kino Tahrirlash", "💾 Backup",
     "🚫 Bloklash", "✅ Blokdan Chiqarish", "📋 Bloklangan Ro'yxat",
     "🎬 Qism Qo'shish", "🔒 Himoya Rejimi",
+    "🎲 Tasodifiy Kino", "🏆 Top 10 Kino",
 }
 
 
