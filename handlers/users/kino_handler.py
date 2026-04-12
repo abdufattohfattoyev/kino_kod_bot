@@ -9,7 +9,7 @@ from data.config import ADMINS, update_env_admins
 from handlers.users.middleware import SubscriptionMiddleware
 from handlers.users.reklama import ReklamaTuriState
 from handlers.users.start import is_subscribed_to_all_channels, get_unsubscribed_channels, get_subscription_keyboard
-from loader import dp, bot, kino_db, user_db, channel_db, join_request_db
+from loader import dp, bot, kino_db, user_db, channel_db, join_request_db, settings_db
 from keyboards.default.button_kino import menu_movie
 from keyboards.default.admin_menu import admin_menu
 
@@ -647,6 +647,7 @@ async def _send_kino(user_id: int, post_id: int, notify_not_found=True) -> bool:
         return False
 
     parts = kino_db.get_parts(post_id)
+    protect = settings_db.get_bool("protect_content", default=False)
 
     caption_base = (
         "<b>" + str(data["caption"]) + "</b>\n\n"
@@ -655,15 +656,14 @@ async def _send_kino(user_id: int, post_id: int, notify_not_found=True) -> bool:
     )
 
     if len(parts) <= 1:
-        # Yagona video
         await bot.send_video(
             chat_id=user_id,
             video=data["file_id"],
             caption=caption_base,
-            parse_mode="HTML"
+            parse_mode="HTML",
+            protect_content=protect
         )
     else:
-        # Ko'p qismli — har bir qism alohida
         total = len(parts)
         for part_num, file_id in parts:
             if part_num == 1:
@@ -674,11 +674,65 @@ async def _send_kino(user_id: int, post_id: int, notify_not_found=True) -> bool:
                 chat_id=user_id,
                 video=file_id,
                 caption=cap,
-                parse_mode="HTML"
+                parse_mode="HTML",
+                protect_content=protect
             )
 
     kino_db.update_download_count(post_id)
     return True
+
+
+# ── Himoya rejimi toggle (admin) ──────────────────────────────────────────────
+
+def _protect_markup() -> InlineKeyboardMarkup:
+    is_on = settings_db.get_bool("protect_content", default=False)
+    status = "✅ Yoqiq" if is_on else "❌ O'chiq"
+    toggle = "🔓 O'chirish" if is_on else "🔒 Yoqish"
+    return InlineKeyboardMarkup().add(
+        InlineKeyboardButton(toggle, callback_data="toggle_protect")
+    ).add(
+        InlineKeyboardButton("🔄 Yangilash", callback_data="refresh_protect")
+    )
+
+
+@dp.message_handler(text="🔒 Himoya Rejimi")
+async def protect_mode_panel(message: types.Message):
+    if not user_db.check_if_admin(message.from_user.id) and message.from_user.id not in ADMINS:
+        await message.answer("🚫 Siz admin emassiz.")
+        return
+    is_on = settings_db.get_bool("protect_content", default=False)
+    status = "✅ <b>Yoqiq</b> — foydalanuvchilar videoni saqlay olmaydi" if is_on else \
+             "❌ <b>O'chiq</b> — foydalanuvchilar videoni saqlashi mumkin"
+    await message.answer(
+        f"🔒 <b>Himoya rejimi</b>\n\n"
+        f"Holat: {status}",
+        parse_mode="HTML",
+        reply_markup=_protect_markup()
+    )
+
+
+@dp.callback_query_handler(lambda c: c.data in ("toggle_protect", "refresh_protect"))
+async def toggle_protect_cb(callback: types.CallbackQuery):
+    if not user_db.check_if_admin(callback.from_user.id) and callback.from_user.id not in ADMINS:
+        await callback.answer("🚫 Siz admin emassiz.", show_alert=True)
+        return
+
+    if callback.data == "toggle_protect":
+        current = settings_db.get_bool("protect_content", default=False)
+        settings_db.set_bool("protect_content", not current)
+
+    is_on = settings_db.get_bool("protect_content", default=False)
+    status = "✅ <b>Yoqiq</b> — foydalanuvchilar videoni saqlay olmaydi" if is_on else \
+             "❌ <b>O'chiq</b> — foydalanuvchilar videoni saqlashi mumkin"
+    try:
+        await callback.message.edit_text(
+            f"🔒 <b>Himoya rejimi</b>\n\nHolat: {status}",
+            parse_mode="HTML",
+            reply_markup=_protect_markup()
+        )
+    except Exception:
+        pass
+    await callback.answer("✅ O'zgartirildi!" if callback.data == "toggle_protect" else "")
 
 
 @dp.message_handler(lambda x: x.text and x.text.isdigit())
@@ -713,7 +767,7 @@ _KNOWN_BUTTONS = {
     "📢 Kanallar", "🔙 Admin menyu", "✅Tasdiqlash", "❌Bekor qilish",
     "✏️ Kino Tahrirlash", "💾 Backup",
     "🚫 Bloklash", "✅ Blokdan Chiqarish", "📋 Bloklangan Ro'yxat",
-    "🎬 Qism Qo'shish",
+    "🎬 Qism Qo'shish", "🔒 Himoya Rejimi",
 }
 
 

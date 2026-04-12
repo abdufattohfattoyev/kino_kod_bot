@@ -132,7 +132,7 @@ async def register_user(user_id: int, username: str, context: str = "unknown") -
         raise
 
 
-# /start komandasi
+# /start komandasi (deep link: /start 12345)
 @dp.message_handler(CommandStart())
 async def start_command(message: types.Message):
     user_id = message.from_user.id
@@ -149,9 +149,14 @@ async def start_command(message: types.Message):
             f"👑 Admin {message.from_user.full_name}! Botga xush kelibsiz.\n✍🏻 Kino kodini yuboring.",
             reply_markup=kanal_keyboard
         )
+        # Deep link bo’lsa adminga ham kinoni yuboramiz
+        args = message.get_args()
+        if args and args.isdigit():
+            from handlers.users.kino_handler import _send_kino
+            await _send_kino(user_id, int(args))
         return
 
-    # Foydalanuvchini ro‘yxatdan o‘tkazish (xabar yuborilmaydi)
+    # Foydalanuvchini ro’yxatdan o’tkazish (xabar yuborilmaydi)
     try:
         await register_user(user_id, username, context="/start")
     except Exception as e:
@@ -159,30 +164,44 @@ async def start_command(message: types.Message):
         await message.answer("⚠️ Ro‘yxatdan o‘tishda xatolik yuz berdi. Qayta urinib ko‘ring.")
         return
 
-    # Kanallar ro‘yxatini tekshirish
+    # Deep link argumentini saqlaymiz
+    args = message.get_args()
+    deep_link_post_id = int(args) if args and args.isdigit() else None
+
+    # Kanallar ro’yxatini tekshirish
     channels = channel_db.get_all_channels()
-    if not channels:  # Agar kanal bo‘lmasa
+    if not channels:  # Agar kanal bo’lmasa
         await message.answer(
             f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
             reply_markup=kanal_keyboard
         )
-    else:  # Agar kanallar bo‘lsa, obuna tekshiruvi
+        if deep_link_post_id:
+            from handlers.users.kino_handler import _send_kino
+            await _send_kino(user_id, deep_link_post_id)
+    else:  # Agar kanallar bo’lsa, obuna tekshiruvi
         if await is_subscribed_to_all_channels(user_id):
             await message.answer(
                 f"👋 Assalomu alaykum, {message.from_user.full_name}! Kino Botga xush kelibsiz.\n\n✍🏻 Kino kodini yuboring.",
                 reply_markup=kanal_keyboard
             )
+            if deep_link_post_id:
+                from handlers.users.kino_handler import _send_kino
+                await _send_kino(user_id, deep_link_post_id)
         else:
             unsubscribed = await get_unsubscribed_channels(user_id)
-            text = "⚠️ <b>Botdan foydalanish uchun quyidagi kanallarga obuna bo‘ling:</b>"
+            text = "⚠️ <b>Botdan foydalanish uchun quyidagi kanallarga obuna bo’ling:</b>"
             markup = get_subscription_keyboard(unsubscribed)
+            # Deep link post_id ni saqlaymiz (obunadan keyin yuboramiz)
+            if deep_link_post_id:
+                from handlers.users.pending import pending_messages
+                pending_messages[user_id] = {"post_id": deep_link_post_id}
             try:
                 msg = await message.answer(text, reply_markup=markup, parse_mode="HTML")
-                if unsubscribed:  # Faqat kanallar bo‘lsa avto-tekshirishni ishga tushiramiz
+                if unsubscribed:
                     asyncio.create_task(auto_check_subscription(user_id, msg))
             except Exception as e:
                 logger.error(f"Obuna xabarini yuborishda xatolik: {e}")
-                await message.answer("Xatolik yuz berdi. Qayta urinib ko'ring.")
+                await message.answer("Xatolik yuz berdi. Qayta urinib ko’ring.")
 
 
 # Obuna tekshirish callback
@@ -219,10 +238,14 @@ async def check_subscription_callback(callback: types.CallbackQuery):
             pass
         await callback.answer()
 
-        # Kutayotgan forward xabar bor bo’lsa qayta ishlaymiz
+        # Kutayotgan xabar bor bo’lsa qayta ishlaymiz
         pending = pending_messages.pop(user_id, None)
-        if pending and pending.get("is_forward"):
-            await _process_pending_forward(user_id, pending)
+        if pending:
+            if pending.get("is_forward"):
+                await _process_pending_forward(user_id, pending)
+            elif pending.get("post_id"):
+                from handlers.users.kino_handler import _send_kino
+                await _send_kino(user_id, pending["post_id"])
     else:
         unsubscribed = await get_unsubscribed_channels(user_id)
         text = "⚠️ <b>Hali barcha kanallarga obuna bo’lmadingiz!</b>\n\n👇 Quyidagilarga obuna bo’ling:"

@@ -32,18 +32,23 @@ async def inline_search_handler(query: types.InlineQuery):
         for movie in movies:
             post_id, file_id, caption = movie
             title = caption or f"Kino #{post_id}"
+            deep_link = f"https://t.me/{username}?start={post_id}"
 
             result = types.InlineQueryResultCachedVideo(
                 id=str(post_id),
                 video_file_id=file_id,
                 title=title,
                 caption=f"🎬 <b>{title}</b>\n\n"
-                        f"📥 Yuklab olish uchun pastdagi tugmani bosing 👇",
+                        f"👇 Kinoni ko'rish uchun tugmani bosing:",
                 parse_mode="HTML",
                 reply_markup=types.InlineKeyboardMarkup().add(
                     types.InlineKeyboardButton(
-                        "🎬 Kinoni olish",
-                        url=f"https://t.me/{username}?start={post_id}"
+                        "▶️ Kinoni ko'rish",
+                        url=deep_link
+                    ),
+                    types.InlineKeyboardButton(
+                        "📤 Ulashish",
+                        switch_inline_query=title
                     )
                 )
             )
