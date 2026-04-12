@@ -15,6 +15,7 @@ import time
 import re
 import os
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ── Sozlamalar ────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,8 @@ def get_env(key):
 BOT_TOKEN = get_env('BOT_TOKEN')
 ADMIN_ID  = int(get_env('ADMINS').split(',')[0])
 CHANNEL   = "@KINO_MANIA_2026"
-MAX_MSG_ID = 10000   # Kanalda nechta post bo'lsa shundan ko'p qilib qo'ying
+MAX_MSG_ID  = 10000   # Kanalda nechta post bo'lsa shundan ko'p qilib qo'ying
+WORKERS     = 8       # Parallel ishchi sonи (ko'paytirsa tezroq, lekin flood bo'lishi mumkin)
 
 BASE = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
@@ -87,11 +89,57 @@ def edit_caption(msg_id, caption):
 
 # ── Asosiy ───────────────────────────────────────────────────────────────────
 
+def process_one(msg_id):
+    """Bitta postni tekshirib, kerak bo'lsa tahrirlaydi. (status, msg_id) qaytaradi."""
+    try:
+        result = forward_msg(msg_id)
+        if not result.get('ok'):
+            return ('skip', msg_id, '')
+
+        fwd    = result['result']
+        fwd_id = fwd['message_id']
+        has_text    = 'text' in fwd
+        has_caption = 'caption' in fwd
+        raw_text    = fwd.get('text') or fwd.get('caption') or ''
+
+        new_text = fix_text(raw_text)
+
+        status = 'skip'
+        desc   = ''
+        if new_text:
+            if has_text:
+                res = edit_text(msg_id, new_text)
+            elif has_caption:
+                res = edit_caption(msg_id, new_text)
+            else:
+                res = {'ok': False}
+
+            if res.get('ok'):
+                status = 'edited'
+            else:
+                status = 'error'
+                desc   = res.get('description', '')
+                # FloodWait — biroz kutib qayta urinamiz
+                if 'retry after' in desc.lower():
+                    wait = int(re.search(r'\d+', desc).group()) + 1
+                    time.sleep(wait)
+                    res2 = edit_text(msg_id, new_text) if has_text else edit_caption(msg_id, new_text)
+                    if res2.get('ok'):
+                        status = 'edited'
+                        desc   = ''
+
+        delete_msg(fwd_id)
+        return (status, msg_id, desc)
+
+    except Exception as e:
+        return ('error', msg_id, str(e))
+
+
 def main():
     print(f"🤖 Bot: {BOT_TOKEN[:25]}...")
     print(f"📢 Kanal: {CHANNEL}")
     print(f"👤 Admin ID: {ADMIN_ID}")
-    print(f"🔍 Tekshiriladigan postlar: 1 → {MAX_MSG_ID}")
+    print(f"🔍 Postlar: 1 → {MAX_MSG_ID}  |  Parallel: {WORKERS} ta")
     print("─" * 45)
 
     total   = 0
@@ -99,66 +147,32 @@ def main():
     skipped = 0
     errors  = 0
 
-    for msg_id in range(1, MAX_MSG_ID + 1):
-        try:
-            # Postni admin DMga forward qilib o'qiymiz
-            result = forward_msg(msg_id)
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        futures = {pool.submit(process_one, i): i for i in range(1, MAX_MSG_ID + 1)}
 
-            if not result.get('ok'):
-                # Post mavjud emas yoki forward bo'lmaydi — o'tkazib yuboramiz
-                continue
+        for future in as_completed(futures):
+            status, msg_id, desc = future.result()
 
-            total += 1
-            fwd = result['result']
-            fwd_id = fwd['message_id']
-
-            # Matni olamiz
-            has_text    = 'text' in fwd
-            has_caption = 'caption' in fwd
-            raw_text    = fwd.get('text') or fwd.get('caption') or ''
-
-            new_text = fix_text(raw_text)
-
-            if new_text:
-                # Asl postni tahrirlaymiz
-                if has_text:
-                    res = edit_text(msg_id, new_text)
-                elif has_caption:
-                    res = edit_caption(msg_id, new_text)
-                else:
-                    res = {'ok': False}
-
-                if res.get('ok'):
-                    edited += 1
-                    print(f"✅ #{msg_id} tahrirlandi")
-                else:
-                    errors += 1
-                    desc = res.get('description', '')
-                    print(f"❌ #{msg_id} tahrirlash xatolik: {desc}")
-            else:
+            if status == 'skip':
                 skipped += 1
+            elif status == 'edited':
+                total  += 1
+                edited += 1
+                print(f"✅ #{msg_id} tahrirlandi")
+            elif status == 'error':
+                total  += 1
+                errors += 1
+                if desc:
+                    print(f"❌ #{msg_id}: {desc}")
 
-            # Forward qilingan xabarni o'chiramiz
-            delete_msg(fwd_id)
-
-        except requests.exceptions.RequestException as e:
-            print(f"⚠️  #{msg_id} tarmoq xatoligi: {e}")
-
-        except Exception as e:
-            errors += 1
-            print(f"❌ #{msg_id}: {e}")
-
-        # Telegram flood limitdan qochish
-        time.sleep(0.4)
-
-        if msg_id % 100 == 0:
-            print(f"   ── {msg_id} ta tekshirildi (tahrirlandi: {edited}) ──")
+            done = edited + errors + skipped
+            if done % 200 == 0:
+                print(f"   ── {done} ta tekshirildi (tahrirlandi: {edited}) ──")
 
     print("\n" + "=" * 45)
-    print(f"✅ Tahrirlandi:        {edited} ta")
+    print(f"✅ Tahrirlandi:           {edited} ta")
     print(f"⏭  O'zgarish kerak emas: {skipped} ta")
-    print(f"❌ Xatolik:            {errors} ta")
-    print(f"📊 Jami ko'rildi:     {total} ta")
+    print(f"❌ Xatolik:               {errors} ta")
 
 
 if __name__ == "__main__":
