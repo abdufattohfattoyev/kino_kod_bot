@@ -312,6 +312,18 @@ async def random_kino_handler(message: types.Message):
     await _send_kino(message.from_user.id, kino["post_id"])
 
 
+def _extract_title(caption: str, post_id: int) -> str:
+    """Caption dan faqat kino nomini oladi (birinchi mazmunli qator)."""
+    if not caption:
+        return f"Kino #{post_id}"
+    for line in caption.split(‘\n’):
+        line = line.strip()
+        if line and not all(c in ‘➖━—─’ for c in line):
+            title = line[:40]
+            return (title + "…") if len(line) > 40 else title
+    return f"Kino #{post_id}"
+
+
 # "🏆 Top 10 Kino" tugmasi
 @dp.message_handler(text="🏆 Top 10 Kino")
 async def top10_kino_handler(message: types.Message):
@@ -320,16 +332,16 @@ async def top10_kino_handler(message: types.Message):
         await message.answer("📭 Hozircha kinolar bazasi bo’sh.")
         return
 
-    lines = ["🏆 <b>Eng ko’p yuklab olingan 10 ta kino:</b>\n"]
     medals = {1: "🥇", 2: "🥈", 3: "🥉"}
     markup = types.InlineKeyboardMarkup(row_width=1)
+    lines = ["🏆 <b>Eng ko’p yuklab olingan 10 ta kino:</b>\n"]
 
     for i, (post_id, caption, count) in enumerate(tops, 1):
         medal = medals.get(i, f"{i}.")
-        short = (caption[:35] + "…") if caption and len(caption) > 35 else (caption or f"#{post_id}")
-        lines.append(f"{medal} <b>{short}</b>  —  📥 {count} marta")
+        title = _extract_title(caption, post_id)
+        lines.append(f"{medal} <b>{title}</b> — 📥 {count}")
         markup.add(types.InlineKeyboardButton(
-            f"{medal} {short}",
+            f"{medal} {title}",
             callback_data=f"kino_{post_id}"
         ))
 
