@@ -777,7 +777,11 @@ def _search_markup(results: list) -> InlineKeyboardMarkup:
     return markup
 
 
-_KNOWN_BUTTONS = {
+def _norm(s: str) -> str:
+    """Apostroflarni normallashtiradi va bo'shliqlarni kesadi."""
+    return s.replace('\u2018', "'").replace('\u2019', "'").replace('\u02BC', "'").strip()
+
+_KNOWN_BUTTONS_RAW = {
     "📽 Barcha kinolar", "➕ Kino Qo'shish", "📊 Statistika",
     "📣 Reklama", "🗑 Kino O'chirish", "👤 Admin Qo'shish",
     "🗑 Admin O'chirish", "📋 Adminlar Ro'yxati", "📨 So'rovlar",
@@ -787,6 +791,7 @@ _KNOWN_BUTTONS = {
     "🎬 Qism Qo'shish", "🔒 Himoya Rejimi",
     "🎲 Tasodifiy Kino", "🏆 Top 10 Kino",
 }
+_KNOWN_BUTTONS = {_norm(b) for b in _KNOWN_BUTTONS_RAW}
 
 
 @dp.message_handler(
@@ -794,7 +799,7 @@ _KNOWN_BUTTONS = {
         m.text
         and not m.text.isdigit()
         and not m.text.startswith("/")
-        and m.text not in _KNOWN_BUTTONS
+        and _norm(m.text) not in _KNOWN_BUTTONS
         and len(m.text.strip()) >= 2
     )
 )
